@@ -90,6 +90,7 @@ benchmark_results/
 *_test_output*
 test_artifacts/
 integration_test_logs/
+legacy_tests/
 
 # Debug files
 debug
