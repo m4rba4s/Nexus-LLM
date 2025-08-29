@@ -1,0 +1,218 @@
+# GOLLM Configuration Example
+# This file demonstrates all available configuration options
+
+# Default provider to use when none is specified
+default_provider: openai
+
+# Provider configurations - configure multiple AI providers
+providers:
+  # OpenAI Configuration
+  openai:
+    type: openai
+    api_key: "${OPENAI_API_KEY}"  # sk-your-openai-api-key
+    base_url: "https://api.openai.com/v1"
+    organization: ""  # Optional organization ID
+    max_retries: 3
+    timeout: 30s
+    rate_limit: ""  # Optional rate limiting
+    custom_headers: {}
+    tls_verify: true
+    models: []  # Auto-discover or specify: ["gpt-4", "gpt-3.5-turbo"]
+    default_model: "gpt-4"
+    extra: {}
+
+  # Anthropic Configuration
+  anthropic:
+    type: anthropic
+    api_key: "${ANTHROPIC_API_KEY}"  # sk-ant-your-anthropic-key
+    base_url: "https://api.anthropic.com"
+    max_retries: 3
+    timeout: 30s
+    tls_verify: true
+    models: ["claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+    default_model: "claude-3-sonnet-20240229"
+
+  # Google Gemini Configuration
+  gemini:
+    type: gemini
+    api_key: "${GEMINI_API_KEY}"  # AIzaSyBVChBl3QBemkcgBZ0jE7uFuttsZlN1dz8
+    base_url: "https://generativelanguage.googleapis.com/v1beta"
+    max_retries: 3
+    timeout: 30s
+    tls_verify: true
+    models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
+    default_model: "gemini-2.0-flash"
+    custom_headers:
+      "X-goog-api-key": "${GEMINI_API_KEY}"
+
+  # DeepSeek Configuration
+  deepseek:
+    type: deepseek
+    api_key: "${DEEPSEEK_API_KEY}"  # sk-your-deepseek-key
+    base_url: "https://api.deepseek.com/v1"
+    max_retries: 3
+    timeout: 30s
+    tls_verify: true
+    models: ["deepseek-chat", "deepseek-coder", "deepseek-v2.5"]
+    default_model: "deepseek-chat"
+
+  # OpenRouter Configuration - Access to 100+ models
+  openrouter:
+    type: openrouter
+    api_key: "${OPENROUTER_API_KEY}"  # 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
+    base_url: "https://openrouter.ai/api/v1"
+    max_retries: 3
+    timeout: 30s
+    tls_verify: true
+    models: []  # Auto-discover from OpenRouter API
+    default_model: "openai/gpt-4o"
+    custom_headers:
+      "HTTP-Referer": "https://your-site.com"  # Optional: for OpenRouter rankings
+      "X-Title": "GOLLM CLI Tool"              # Optional: for OpenRouter rankings
+    extra:
+      site_url: "https://your-site.com"
+      site_name: "GOLLM CLI Tool"
+
+  # Local Ollama Configuration (if running locally)
+  ollama:
+    type: ollama
+    api_key: ""  # Ollama doesn't require API key
+    base_url: "http://localhost:11434"
+    max_retries: 3
+    timeout: 60s
+    tls_verify: false
+    models: ["llama2", "codellama", "mistral"]
+    default_model: "llama2"
+
+# Global application settings
+settings:
+  max_tokens: 2048           # Maximum tokens per request
+  temperature: 0.7           # Randomness (0.0-2.0)
+  top_p: 1.0                # Nucleus sampling (0.0-1.0)
+  frequency_penalty: 0.0     # Frequency penalty (-2.0 to 2.0)
+  presence_penalty: 0.0      # Presence penalty (-2.0 to 2.0)
+  timeout: 30s               # Request timeout
+  retry_attempts: 3          # Number of retry attempts
+  retry_delay: 1s            # Delay between retries
+  user_agent: "gollm/1.0.0"  # User agent string
+  output_format: "text"      # Output format: text, json, yaml
+
+# Feature flags - enable/disable functionality
+features:
+  streaming: true            # Enable streaming responses
+  caching: false             # Enable response caching
+  plugins: false             # Enable plugin system
+  mcp: false                 # Enable Model Context Protocol
+  metrics: false             # Enable metrics collection
+  health_checks: false       # Enable health checks
+  auto_retry: true           # Enable automatic retries
+  compression: false         # Enable response compression
+
+# Logging configuration
+logging:
+  level: "info"              # Log level: trace, debug, info, warn, error, fatal, panic
+  format: "json"             # Log format: text, json
+  output: "stdout"           # Output: stdout, stderr, file
+  file: ""                   # Log file path (if output=file)
+  max_size: 100              # Max log file size in MB
+  max_backups: 3             # Max number of backup files
+  max_age: 30                # Max age in days
+  audit_enabled: false       # Enable audit logging
+
+# Security configuration
+security:
+  tls_min_version: "1.3"     # Minimum TLS version
+  certificate_pinning: false # Enable certificate pinning
+  token_rotation: false      # Enable API key rotation
+  encrypt_config: false      # Encrypt configuration file
+  session_timeout: 2h        # Session timeout
+  max_request_size: 10485760 # Max request size (10MB)
+
+# Cache configuration
+cache:
+  enabled: false             # Enable caching
+  type: "memory"             # Cache type: memory, redis, file
+  ttl: 1h                    # Time to live
+  max_size: 104857600        # Max cache size (100MB)
+  directory: ""              # Cache directory (for file cache)
+  redis_url: ""              # Redis URL (for redis cache)
+  compression: false         # Enable cache compression
+
+# Plugin configuration
+plugins:
+  enabled: false             # Enable plugin system
+  directory: "~/.gollm/plugins" # Plugin directory
+  autoload: false            # Auto-load plugins on startup
+  whitelist: []              # Allowed plugins (empty = all)
+  blacklist: []              # Blocked plugins
+  timeout: 30s               # Plugin execution timeout
+  max_memory: 67108864       # Max memory per plugin (64MB)
+
+# Model Context Protocol (MCP) configuration
+mcp:
+  enabled: false             # Enable MCP support
+  servers: []                # MCP server configurations
+  timeout: 30s               # MCP request timeout
+  max_retries: 3             # Max retry attempts
+  health_checks: false       # Enable health checks
+
+# Example MCP server configuration (uncomment to use):
+# mcp:
+#   enabled: true
+#   servers:
+#     - name: "filesystem"
+#       url: "stdio://mcp-server-filesystem"
+#       type: "stdio"
+#       enabled: true
+#     - name: "web-search"
+#       url: "http://localhost:8080/mcp"
+#       type: "http"
+#       enabled: true
+#   timeout: 30s
+#   max_retries: 3
+#   health_checks: true
+
+# Environment Variables Reference:
+# Set these in your shell or .env file:
+#
+# export OPENAI_API_KEY="sk-your-openai-api-key"
+# export ANTHROPIC_API_KEY="sk-ant-your-anthropic-key"
+# export GEMINI_API_KEY="AIzaSyBVChBl3QBemkcgBZ0jE7uFuttsZlN1dz8"
+# export DEEPSEEK_API_KEY="sk-your-deepseek-key"
+# export OPENROUTER_API_KEY="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"
+#
+# You can also override any setting with environment variables using the prefix GOLLM_
+# Examples:
+# export GOLLM_DEFAULT_PROVIDER="gemini"
+# export GOLLM_SETTINGS_TEMPERATURE="0.9"
+# export GOLLM_FEATURES_STREAMING="true"
+# export GOLLM_LOGGING_LEVEL="debug"
+
+# Quick Start Examples:
+
+# 1. Use OpenAI (default):
+#    gollm chat "Hello, how are you?"
+
+# 2. Use specific provider:
+#    gollm chat --provider gemini "Explain quantum computing"
+
+# 3. Use specific model:
+#    gollm chat --provider openrouter --model "anthropic/claude-3-sonnet" "Write a poem"
+
+# 4. Stream responses:
+#    gollm chat --stream "Tell me a long story"
+
+# 5. Save to file:
+#    gollm chat "Generate a README" --output README.md
+
+# 6. Interactive mode:
+#    gollm chat --interactive
+
+# 7. List available models:
+#    gollm models --provider openrouter
+
+# 8. Check configuration:
+#    gollm config show
+
+# 9. Test all providers:
+#    gollm config test

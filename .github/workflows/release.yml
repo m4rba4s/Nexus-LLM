@@ -1,0 +1,498 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.21'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+        fi
+
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+        # Check if this is a prerelease (contains alpha, beta, rc)
+        if [[ "${VERSION}" =~ (alpha|beta|rc) ]]; then
+          echo "is_prerelease=true" >> $GITHUB_OUTPUT
+        else
+          echo "is_prerelease=false" >> $GITHUB_OUTPUT
+        fi
+
+        echo "Release version: ${VERSION}"
+        echo "Is prerelease: ${{ steps.version.outputs.is_prerelease }}"
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from commits since last tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^1 2>/dev/null || echo "")
+
+        if [ -z "$PREVIOUS_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"* %s (%an)" --no-merges)
+        else
+          CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"* %s (%an)" --no-merges)
+        fi
+
+        # Save changelog to file for GitHub release
+        cat > CHANGELOG.md << 'EOF'
+        ## What's Changed
+
+        ${CHANGELOG}
+
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${{ steps.version.outputs.version }}
+        EOF
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: GOLLM ${{ steps.version.outputs.version }}
+        body_path: CHANGELOG.md
+        draft: true
+        prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+  build:
+    name: Build Release Binaries
+    runs-on: ubuntu-latest
+    needs: prepare
+    strategy:
+      matrix:
+        target:
+          - { goos: linux, goarch: amd64, name: linux-amd64 }
+          - { goos: linux, goarch: arm64, name: linux-arm64 }
+          - { goos: linux, goarch: arm, goarm: 7, name: linux-arm7 }
+          - { goos: darwin, goarch: amd64, name: darwin-amd64 }
+          - { goos: darwin, goarch: arm64, name: darwin-arm64 }
+          - { goos: windows, goarch: amd64, name: windows-amd64 }
+          - { goos: windows, goarch: arm64, name: windows-arm64 }
+          - { goos: freebsd, goarch: amd64, name: freebsd-amd64 }
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-release-${{ hashFiles('**/go.sum') }}
+
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.target.goos }}
+        GOARCH: ${{ matrix.target.goarch }}
+        GOARM: ${{ matrix.target.goarm }}
+        CGO_ENABLED: 0
+      run: |
+        VERSION="${{ needs.prepare.outputs.version }}"
+        COMMIT=$(git rev-parse --short HEAD)
+        BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        BINARY_NAME="gollm"
+        ARCHIVE_NAME="gollm-${VERSION#v}-${{ matrix.target.name }}"
+
+        if [ "${{ matrix.target.goos }}" = "windows" ]; then
+          BINARY_NAME="${BINARY_NAME}.exe"
+        fi
+
+        LDFLAGS="-s -w \
+          -X 'github.com/yourusername/gollm/internal/version.Version=${VERSION}' \
+          -X 'github.com/yourusername/gollm/internal/version.Commit=${COMMIT}' \
+          -X 'github.com/yourusername/gollm/internal/version.BuildTime=${BUILD_TIME}'"
+
+        echo "Building ${BINARY_NAME} for ${{ matrix.target.goos }}/${{ matrix.target.goarch }}"
+
+        go build \
+          -trimpath \
+          -ldflags="${LDFLAGS}" \
+          -o "${BINARY_NAME}" \
+          ./cmd/gollm
+
+        # Verify the binary works
+        if [ "${{ matrix.target.goos }}" != "windows" ] && [ "${{ runner.os }}" = "Linux" ]; then
+          ./${BINARY_NAME} version --short
+        fi
+
+        # Create archive
+        mkdir -p dist
+        if [ "${{ matrix.target.goos }}" = "windows" ]; then
+          # Windows: ZIP archive
+          zip "dist/${ARCHIVE_NAME}.zip" "${BINARY_NAME}" README.md LICENSE
+          echo "ARCHIVE_FILE=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          echo "ARCHIVE_PATH=dist/${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+        else
+          # Unix: tar.gz archive
+          tar -czf "dist/${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}" README.md LICENSE
+          echo "ARCHIVE_FILE=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          echo "ARCHIVE_PATH=dist/${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+        fi
+
+    - name: Generate checksum
+      run: |
+        cd dist
+        sha256sum "${{ env.ARCHIVE_FILE }}" > "${{ env.ARCHIVE_FILE }}.sha256"
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.prepare.outputs.upload_url }}
+        asset_path: ${{ env.ARCHIVE_PATH }}
+        asset_name: ${{ env.ARCHIVE_FILE }}
+        asset_content_type: application/octet-stream
+
+    - name: Upload checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.prepare.outputs.upload_url }}
+        asset_path: ${{ env.ARCHIVE_PATH }}.sha256
+        asset_name: ${{ env.ARCHIVE_FILE }}.sha256
+        asset_content_type: text/plain
+
+  docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Login to Docker Hub
+      if: secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_TOKEN
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          ${{ secrets.DOCKERHUB_USERNAME && format('{0}/gollm', secrets.DOCKERHUB_USERNAME) || '' }}
+        tags: |
+          type=ref,event=tag
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+        labels: |
+          org.opencontainers.image.title=GOLLM
+          org.opencontainers.image.description=High-performance CLI for Large Language Models
+          org.opencontainers.image.vendor=GOLLM Team
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          VERSION=${{ needs.prepare.outputs.version }}
+          COMMIT=${{ github.sha }}
+          BUILD_TIME=${{ github.event.head_commit.timestamp }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  packages:
+    name: Build Package Installers
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    strategy:
+      matrix:
+        pkg_type: [deb, rpm, apk]
+        arch: [amd64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download Linux binary
+      run: |
+        VERSION="${{ needs.prepare.outputs.version }}"
+        ARCHIVE_NAME="gollm-${VERSION#v}-linux-${{ matrix.arch }}"
+
+        # Download from GitHub release
+        wget -O "${ARCHIVE_NAME}.tar.gz" \
+          "https://github.com/${{ github.repository }}/releases/download/${VERSION}/${ARCHIVE_NAME}.tar.gz"
+
+        tar -xzf "${ARCHIVE_NAME}.tar.gz"
+
+    - name: Install packaging tools
+      run: |
+        sudo apt-get update
+        case "${{ matrix.pkg_type }}" in
+          deb)
+            sudo apt-get install -y build-essential debhelper devscripts
+            ;;
+          rpm)
+            sudo apt-get install -y rpm alien
+            ;;
+          apk)
+            sudo apt-get install -y alpine-sdk
+            ;;
+        esac
+
+    - name: Build package
+      run: |
+        VERSION="${{ needs.prepare.outputs.version }}"
+        ARCH="${{ matrix.arch }}"
+        PKG_TYPE="${{ matrix.pkg_type }}"
+
+        # Create package structure
+        mkdir -p pkg/{usr/local/bin,usr/share/doc/gollm,etc/bash_completion.d}
+
+        # Copy files
+        cp gollm pkg/usr/local/bin/
+        cp README.md LICENSE pkg/usr/share/doc/gollm/
+
+        # Generate completion script
+        ./gollm completion bash > pkg/etc/bash_completion.d/gollm
+
+        case "$PKG_TYPE" in
+          deb)
+            # Create Debian package
+            mkdir -p pkg/DEBIAN
+            cat > pkg/DEBIAN/control << EOF
+        Package: gollm
+        Version: ${VERSION#v}
+        Architecture: ${ARCH}
+        Maintainer: GOLLM Team <team@gollm.dev>
+        Description: High-performance CLI for Large Language Models
+         GOLLM provides a unified interface to interact with multiple LLM providers
+         while delivering exceptional performance, security, and ease of use.
+        Homepage: https://github.com/${{ github.repository }}
+        Section: utils
+        Priority: optional
+        Depends: ca-certificates
+        EOF
+
+            dpkg-deb --build pkg "gollm_${VERSION#v}_${ARCH}.deb"
+            ;;
+
+          rpm)
+            # Create RPM package
+            mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+
+            cat > ~/rpmbuild/SPECS/gollm.spec << EOF
+        Name: gollm
+        Version: ${VERSION#v}
+        Release: 1
+        Summary: High-performance CLI for Large Language Models
+        License: MIT
+        URL: https://github.com/${{ github.repository }}
+        BuildArch: ${ARCH}
+        Requires: ca-certificates
+
+        %description
+        GOLLM provides a unified interface to interact with multiple LLM providers
+        while delivering exceptional performance, security, and ease of use.
+
+        %install
+        mkdir -p %{buildroot}/usr/local/bin
+        mkdir -p %{buildroot}/usr/share/doc/gollm
+        mkdir -p %{buildroot}/etc/bash_completion.d
+        cp $PWD/pkg/usr/local/bin/gollm %{buildroot}/usr/local/bin/
+        cp $PWD/pkg/usr/share/doc/gollm/* %{buildroot}/usr/share/doc/gollm/
+        cp $PWD/pkg/etc/bash_completion.d/gollm %{buildroot}/etc/bash_completion.d/
+
+        %files
+        /usr/local/bin/gollm
+        /usr/share/doc/gollm/*
+        /etc/bash_completion.d/gollm
+        EOF
+
+            rpmbuild -bb ~/rpmbuild/SPECS/gollm.spec
+            cp ~/rpmbuild/RPMS/${ARCH}/gollm-${VERSION#v}-1.${ARCH}.rpm ./
+            ;;
+
+          apk)
+            # Create Alpine package (simplified)
+            tar -czf "gollm-${VERSION#v}-${ARCH}.apk.tar.gz" -C pkg .
+            mv "gollm-${VERSION#v}-${ARCH}.apk.tar.gz" "gollm-${VERSION#v}-${ARCH}.apk"
+            ;;
+        esac
+
+    - name: Upload package asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.prepare.outputs.upload_url }}
+        asset_path: gollm_${{ needs.prepare.outputs.version }}_${{ matrix.arch }}.${{ matrix.pkg_type }}
+        asset_name: gollm_${{ needs.prepare.outputs.version }}_${{ matrix.arch }}.${{ matrix.pkg_type }}
+        asset_content_type: application/octet-stream
+
+  homebrew:
+    name: Update Homebrew Formula
+    runs-on: macos-latest
+    needs: [prepare, build]
+    if: needs.prepare.outputs.is_prerelease == 'false'
+
+    steps:
+    - name: Update Homebrew formula
+      env:
+        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+      run: |
+        VERSION="${{ needs.prepare.outputs.version }}"
+
+        # Calculate SHA256 for macOS binaries
+        MACOS_AMD64_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/gollm-${VERSION#v}-darwin-amd64.tar.gz"
+        MACOS_ARM64_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/gollm-${VERSION#v}-darwin-arm64.tar.gz"
+
+        MACOS_AMD64_SHA=$(curl -sL "$MACOS_AMD64_URL" | shasum -a 256 | cut -d' ' -f1)
+        MACOS_ARM64_SHA=$(curl -sL "$MACOS_ARM64_URL" | shasum -a 256 | cut -d' ' -f1)
+
+        # Update Homebrew formula (this would typically be done via a separate repository)
+        echo "Homebrew formula would be updated with:"
+        echo "Version: ${VERSION}"
+        echo "AMD64 SHA: ${MACOS_AMD64_SHA}"
+        echo "ARM64 SHA: ${MACOS_ARM64_SHA}"
+
+  winget:
+    name: Update Winget Package
+    runs-on: windows-latest
+    needs: [prepare, build]
+    if: needs.prepare.outputs.is_prerelease == 'false'
+
+    steps:
+    - name: Update Windows Package Manager
+      run: |
+        $VERSION = "${{ needs.prepare.outputs.version }}"
+        $WINDOWS_URL = "https://github.com/${{ github.repository }}/releases/download/${VERSION}/gollm-${VERSION.TrimStart('v')}-windows-amd64.zip"
+
+        # This would typically involve creating a PR to the winget-pkgs repository
+        Write-Host "Winget package would be updated with:"
+        Write-Host "Version: $VERSION"
+        Write-Host "Download URL: $WINDOWS_URL"
+
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [prepare, build, docker, packages]
+
+    steps:
+    - name: Publish GitHub Release
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo } = context.repo;
+          const release_id = ${{ needs.prepare.outputs.release_id }};
+
+          // Update release to published
+          await github.rest.repos.updateRelease({
+            owner,
+            repo,
+            release_id,
+            draft: false
+          });
+
+          console.log(`Published release: ${{ needs.prepare.outputs.version }}`);
+
+    - name: Create GitHub Deployment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo } = context.repo;
+
+          const deployment = await github.rest.repos.createDeployment({
+            owner,
+            repo,
+            ref: '${{ needs.prepare.outputs.version }}',
+            environment: 'production',
+            description: 'Release deployment',
+            auto_merge: false,
+            required_contexts: []
+          });
+
+          await github.rest.repos.createDeploymentStatus({
+            owner,
+            repo,
+            deployment_id: deployment.data.id,
+            state: 'success',
+            description: 'Release deployed successfully',
+            environment_url: `https://github.com/${owner}/${repo}/releases/tag/${{ needs.prepare.outputs.version }}`
+          });
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [prepare, publish]
+    if: always()
+
+    steps:
+    - name: Notify Success
+      if: needs.publish.result == 'success'
+      run: |
+        echo "🎉 Successfully released GOLLM ${{ needs.prepare.outputs.version }}!"
+        echo "📦 Assets available at: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.version }}"
+        echo "🐳 Docker images pushed to registries"
+        echo "📋 Package installers created for multiple platforms"
+
+    - name: Notify Failure
+      if: failure()
+      run: |
+        echo "❌ Release failed for GOLLM ${{ needs.prepare.outputs.version }}"
+        echo "Please check the workflow logs for details"
