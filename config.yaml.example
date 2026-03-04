@@ -1,0 +1,50 @@
+  # GOLLM Configuration File
+# Copy this to ~/.gollm/config.yaml
+
+default_provider: deepseek
+model: deepseek-coder
+
+# Provider configurations
+providers:
+  openai:
+    api_key: ${OPENAI_API_KEY}
+    models:
+      - gpt-4-turbo-preview
+      - gpt-4
+      - gpt-3.5-turbo
+    default_model: gpt-4
+
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com/v1
+    models:
+      - deepseek-chat
+      - deepseek-coder
+    default_model: deepseek-coder
+
+  gemini:
+    api_key: ${GEMINI_API_KEY}
+    models:
+      - gemini-pro
+      - gemini-pro-vision
+    default_model: gemini-pro
+
+  openrouter:
+    api_key: ${OPENROUTER_API_KEY}
+    base_url: https://openrouter.ai/api/v1
+
+# Global settings
+settings:
+  max_tokens: 2048
+  temperature: 0.7
+  timeout: 30s
+  output_format: text
+
+# Feature flags
+features:
+  streaming: true
+  caching: false
+
+# Extra settings for menu
+extra:
+  coder_operator: Codegen

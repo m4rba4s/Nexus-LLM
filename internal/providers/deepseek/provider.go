@@ -34,13 +34,13 @@ const (
 
 // Config holds the configuration for the DeepSeek provider.
 type Config struct {
-	APIKey        string            `json:"api_key" validate:"required"`
-	BaseURL       string            `json:"base_url,omitempty"`
-	Model         string            `json:"model,omitempty"`
-	MaxRetries    int               `json:"max_retries,omitempty"`
-	Timeout       time.Duration     `json:"timeout,omitempty"`
-	Headers       map[string]string `json:"headers,omitempty"`
-	UserAgent     string            `json:"user_agent,omitempty"`
+	APIKey     string            `json:"api_key" validate:"required"`
+	BaseURL    string            `json:"base_url,omitempty"`
+	Model      string            `json:"model,omitempty"`
+	MaxRetries int               `json:"max_retries,omitempty"`
+	Timeout    time.Duration     `json:"timeout,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+	UserAgent  string            `json:"user_agent,omitempty"`
 }
 
 // Provider implements the DeepSeek API provider.
@@ -51,9 +51,9 @@ type Provider struct {
 	metrics *core.ProviderMetrics
 
 	// Model capabilities cache
-	modelsCache      []core.Model
-	modelsCacheTime  time.Time
-	modelsCacheTTL   time.Duration
+	modelsCache     []core.Model
+	modelsCacheTime time.Time
+	modelsCacheTTL  time.Duration
 }
 
 // New creates a new DeepSeek provider instance.
@@ -96,10 +96,10 @@ func New(config Config) (*Provider, error) {
 	}
 
 	return &Provider{
-		config:          config,
-		client:          client,
-		modelsCacheTTL:  10 * time.Minute,
-		metrics:         &core.ProviderMetrics{},
+		config:         config,
+		client:         client,
+		modelsCacheTTL: 10 * time.Minute,
+		metrics:        &core.ProviderMetrics{},
 	}, nil
 }
 
@@ -299,8 +299,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			MaxTokens:         &[]int{32768}[0],
 			SupportsFunctions: true,
 			SupportsStreaming: true,
-			InputCostPer1K:    &[]float64{0.14}[0],   // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{0.28}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{0.14}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{0.28}[0], // per 1M tokens -> per 1K
 			Description:       "DeepSeek Chat - General purpose conversational model",
 			Tags:              []string{"chat", "general"},
 		},
@@ -311,8 +311,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			MaxTokens:         &[]int{16384}[0],
 			SupportsFunctions: true,
 			SupportsStreaming: true,
-			InputCostPer1K:    &[]float64{0.14}[0],   // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{0.28}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{0.14}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{0.28}[0], // per 1M tokens -> per 1K
 			Description:       "DeepSeek Coder - Specialized coding model",
 			Tags:              []string{"code", "programming"},
 		},
@@ -323,8 +323,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			MaxTokens:         &[]int{32768}[0],
 			SupportsFunctions: true,
 			SupportsStreaming: true,
-			InputCostPer1K:    &[]float64{0.14}[0],   // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{0.28}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{0.14}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{0.28}[0], // per 1M tokens -> per 1K
 			Description:       "DeepSeek V2.5 - Latest version with improved capabilities",
 			Tags:              []string{"latest", "improved"},
 		},
@@ -451,19 +451,19 @@ type DeepSeekMessage struct {
 
 // DeepSeekResponse represents a response from the DeepSeek API.
 type DeepSeekResponse struct {
-	ID      string             `json:"id"`
-	Object  string             `json:"object"`
-	Created int64              `json:"created"`
-	Model   string             `json:"model"`
-	Choices []DeepSeekChoice   `json:"choices"`
-	Usage   DeepSeekUsage      `json:"usage"`
+	ID      string           `json:"id"`
+	Object  string           `json:"object"`
+	Created int64            `json:"created"`
+	Model   string           `json:"model"`
+	Choices []DeepSeekChoice `json:"choices"`
+	Usage   DeepSeekUsage    `json:"usage"`
 }
 
 // DeepSeekChoice represents a choice in a DeepSeek response.
 type DeepSeekChoice struct {
-	Index        int               `json:"index"`
-	Message      DeepSeekMessage   `json:"message"`
-	FinishReason string            `json:"finish_reason"`
+	Index        int             `json:"index"`
+	Message      DeepSeekMessage `json:"message"`
+	FinishReason string          `json:"finish_reason"`
 }
 
 // DeepSeekUsage represents usage information in a DeepSeek response.
@@ -475,22 +475,71 @@ type DeepSeekUsage struct {
 
 // DeepSeekStreamResponse represents a streaming response from DeepSeek.
 type DeepSeekStreamResponse struct {
-	ID      string                   `json:"id"`
-	Object  string                   `json:"object"`
-	Created int64                    `json:"created"`
-	Model   string                   `json:"model"`
-	Choices []DeepSeekStreamChoice   `json:"choices"`
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Created int64                  `json:"created"`
+	Model   string                 `json:"model"`
+	Choices []DeepSeekStreamChoice `json:"choices"`
 }
 
 // DeepSeekStreamChoice represents a streaming choice.
 type DeepSeekStreamChoice struct {
-	Index        int                    `json:"index"`
-	Delta        DeepSeekStreamDelta    `json:"delta"`
-	FinishReason string                 `json:"finish_reason"`
+	Index        int                 `json:"index"`
+	Delta        DeepSeekStreamDelta `json:"delta"`
+	FinishReason string              `json:"finish_reason"`
 }
 
 // DeepSeekStreamDelta represents a streaming delta.
 type DeepSeekStreamDelta struct {
 	Role    string `json:"role,omitempty"`
 	Content string `json:"content,omitempty"`
+}
+
+// NewFromConfig creates a new DeepSeek provider from core configuration.
+// This is used by the provider registry for dynamic provider creation.
+func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
+	// Convert core config to DeepSeek-specific config
+	deepseekConfig := Config{
+		APIKey:     config.APIKey,
+		BaseURL:    DefaultBaseURL,
+		Model:      DefaultModel,
+		MaxRetries: 3,
+		Timeout:    DefaultTimeout,
+		UserAgent:  UserAgent,
+	}
+
+	// Apply settings from core config if provided
+	if config.BaseURL != "" {
+		deepseekConfig.BaseURL = config.BaseURL
+	}
+	if config.Timeout > 0 {
+		deepseekConfig.Timeout = config.Timeout
+	}
+	if config.MaxRetries > 0 {
+		deepseekConfig.MaxRetries = config.MaxRetries
+	}
+
+	// Parse provider-specific extra settings
+	if config.Extra != nil {
+		if model, ok := config.Extra["default_model"].(string); ok {
+			deepseekConfig.Model = model
+		}
+		if headers, ok := config.Extra["headers"].(map[string]string); ok {
+			deepseekConfig.Headers = headers
+		}
+		if userAgent, ok := config.Extra["user_agent"].(string); ok {
+			deepseekConfig.UserAgent = userAgent
+		}
+	}
+
+	provider, err := New(deepseekConfig)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
+}
+
+// init registers the DeepSeek provider factory with the global registry.
+func init() {
+	core.RegisterProviderFactory("deepseek", NewFromConfig)
 }

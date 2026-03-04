@@ -12,10 +12,10 @@ import (
 
 func TestNewRootCommand(t *testing.T) {
 	tests := []struct {
-		name          string
-		buildInfo     BuildInfo
-		expectedName  string
-		expectError   bool
+		name         string
+		buildInfo    BuildInfo
+		expectedName string
+		expectError  bool
 	}{
 		{
 			name: "valid root command with build info",
@@ -126,7 +126,7 @@ func TestGlobalFlags_ApplyDefaults(t *testing.T) {
 		expected GlobalFlags
 	}{
 		{
-			name: "empty flags should get defaults",
+			name:  "empty flags should get defaults",
 			flags: GlobalFlags{},
 			expected: GlobalFlags{
 				LogLevel:     "info",

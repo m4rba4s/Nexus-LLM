@@ -10,13 +10,16 @@
 //   - Concurrent operation scalability
 //
 // Run benchmarks with:
-//   go test -bench=. -benchmem -count=5 ./internal/benchmarks
+//
+//	go test -bench=. -benchmem -count=5 ./internal/benchmarks
 //
 // For CPU profiling:
-//   go test -bench=BenchmarkProvider_CreateCompletion -cpuprofile=cpu.prof
+//
+//	go test -bench=BenchmarkProvider_CreateCompletion -cpuprofile=cpu.prof
 //
 // For memory profiling:
-//   go test -bench=BenchmarkConfig_Load -memprofile=mem.prof
+//
+//	go test -bench=BenchmarkConfig_Load -memprofile=mem.prof
 package benchmarks
 
 import (
@@ -31,10 +34,10 @@ import (
 	"testing"
 	"time"
 
+	"encoding/json"
 	"github.com/yourusername/gollm/internal/config"
 	"github.com/yourusername/gollm/internal/core"
 	"github.com/yourusername/gollm/internal/providers/mock"
-	"encoding/json"
 
 	"github.com/yourusername/gollm/internal/transport"
 )
@@ -486,7 +489,7 @@ func BenchmarkString_Concatenation_Naive(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		result := "Response: " + response.Choices[0].Message.Content +
-				  "\n\nUsage: " + fmt.Sprintf("%d tokens", response.Usage.TotalTokens)
+			"\n\nUsage: " + fmt.Sprintf("%d tokens", response.Usage.TotalTokens)
 		_ = result
 	}
 }
@@ -617,18 +620,18 @@ func createComplexConfig() *config.Config {
 		DefaultProvider: "openai",
 		Providers: map[string]config.ProviderConfig{
 			"openai": {
-				Type:    "openai",
-				APIKey:  config.NewSecureString("sk-test-key-1234567890"),
-				BaseURL: "https://api.openai.com/v1",
+				Type:       "openai",
+				APIKey:     config.NewSecureString("sk-test-key-1234567890"),
+				BaseURL:    "https://api.openai.com/v1",
 				MaxRetries: 3,
-				Timeout: 30 * time.Second,
+				Timeout:    30 * time.Second,
 			},
 			"anthropic": {
-				Type:    "anthropic",
-				APIKey:  config.NewSecureString("sk-ant-test-key-abcdefg"),
-				BaseURL: "https://api.anthropic.com",
+				Type:       "anthropic",
+				APIKey:     config.NewSecureString("sk-ant-test-key-abcdefg"),
+				BaseURL:    "https://api.anthropic.com",
 				MaxRetries: 5,
-				Timeout: 45 * time.Second,
+				Timeout:    45 * time.Second,
 			},
 			"ollama": {
 				Type:    "ollama",

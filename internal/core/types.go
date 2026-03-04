@@ -28,23 +28,24 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 )
 
 // Common error types used throughout the system.
 var (
-	ErrInvalidRequest    = errors.New("invalid request")
-	ErrInvalidModel      = errors.New("invalid model specified")
-	ErrInvalidProvider   = errors.New("invalid provider specified")
-	ErrRateLimited       = errors.New("rate limit exceeded")
-	ErrQuotaExceeded     = errors.New("quota exceeded")
-	ErrAuthentication    = errors.New("authentication failed")
-	ErrUnauthorized      = errors.New("unauthorized access")
-	ErrProviderUnavail   = errors.New("provider unavailable")
-	ErrTimeout           = errors.New("request timeout")
-	ErrContextCanceled   = errors.New("context canceled")
-	ErrInvalidResponse   = errors.New("invalid response from provider")
-	ErrStreamClosed      = errors.New("stream closed")
+	ErrInvalidRequest  = errors.New("invalid request")
+	ErrInvalidModel    = errors.New("invalid model specified")
+	ErrInvalidProvider = errors.New("invalid provider specified")
+	ErrRateLimited     = errors.New("rate limit exceeded")
+	ErrQuotaExceeded   = errors.New("quota exceeded")
+	ErrAuthentication  = errors.New("authentication failed")
+	ErrUnauthorized    = errors.New("unauthorized access")
+	ErrProviderUnavail = errors.New("provider unavailable")
+	ErrTimeout         = errors.New("request timeout")
+	ErrContextCanceled = errors.New("context canceled")
+	ErrInvalidResponse = errors.New("invalid response from provider")
+	ErrStreamClosed    = errors.New("stream closed")
 )
 
 // ValidationError represents a validation failure with detailed context.
@@ -106,6 +107,16 @@ type Provider interface {
 	ValidateConfig() error
 }
 
+// ModelProvider defines the interface for providers that can list models
+type ModelProvider interface {
+	ListModels(ctx context.Context) ([]Model, error)
+}
+
+// Embedder defines the interface for providers that can generate vector embeddings.
+type Embedder interface {
+	EmbedText(ctx context.Context, text string) ([]float32, error)
+}
+
 // Streamer defines the interface for providers that support streaming.
 type Streamer interface {
 	Provider
@@ -158,17 +169,17 @@ type CompletionRequest struct {
 	Messages []Message `json:"messages" validate:"required,min=1,max=100"`
 
 	// Optional completion parameters
-	MaxTokens        *int             `json:"max_tokens,omitempty" validate:"omitempty,min=1,max=32768"`
-	Temperature      *float64         `json:"temperature,omitempty" validate:"omitempty,min=0,max=2"`
-	TopP             *float64         `json:"top_p,omitempty" validate:"omitempty,min=0,max=1"`
-	FrequencyPenalty *float64         `json:"frequency_penalty,omitempty" validate:"omitempty,min=-2,max=2"`
-	PresencePenalty  *float64         `json:"presence_penalty,omitempty" validate:"omitempty,min=-2,max=2"`
-	Stop             []string         `json:"stop,omitempty" validate:"omitempty,max=4"`
+	MaxTokens        *int     `json:"max_tokens,omitempty" validate:"omitempty,min=1,max=32768"`
+	Temperature      *float64 `json:"temperature,omitempty" validate:"omitempty,min=0,max=2"`
+	TopP             *float64 `json:"top_p,omitempty" validate:"omitempty,min=0,max=1"`
+	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty" validate:"omitempty,min=-2,max=2"`
+	PresencePenalty  *float64 `json:"presence_penalty,omitempty" validate:"omitempty,min=-2,max=2"`
+	Stop             []string `json:"stop,omitempty" validate:"omitempty,max=4"`
 
 	// Streaming and tools
-	Stream    bool       `json:"stream,omitempty"`
-	Tools     []Tool     `json:"tools,omitempty"`
-	ToolChoice *string   `json:"tool_choice,omitempty"`
+	Stream     bool    `json:"stream,omitempty"`
+	Tools      []Tool  `json:"tools,omitempty"`
+	ToolChoice *string `json:"tool_choice,omitempty"`
 
 	// System and user identification
 	SystemMessage *string `json:"system_message,omitempty"`
@@ -250,17 +261,17 @@ type ToolFunction struct {
 
 // CompletionResponse represents a response from the chat completion API.
 type CompletionResponse struct {
-	ID      string    `json:"id"`
-	Object  string    `json:"object"`
-	Created int64     `json:"created"`
-	Model   string    `json:"model"`
-	Choices []Choice  `json:"choices"`
-	Usage   Usage     `json:"usage"`
+	ID      string   `json:"id"`
+	Object  string   `json:"object"`
+	Created int64    `json:"created"`
+	Model   string   `json:"model"`
+	Choices []Choice `json:"choices"`
+	Usage   Usage    `json:"usage"`
 
 	// Provider-specific metadata
-	Provider     string            `json:"provider,omitempty"`
-	RequestID    string            `json:"request_id,omitempty"`
-	ResponseTime time.Duration     `json:"response_time,omitempty"`
+	Provider     string                 `json:"provider,omitempty"`
+	RequestID    string                 `json:"request_id,omitempty"`
+	ResponseTime time.Duration          `json:"response_time,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -279,17 +290,17 @@ type ChatResponse struct {
 
 // Choice represents a single completion choice.
 type Choice struct {
-	Index        int     `json:"index"`
-	Message      Message `json:"message"`
-	Delta        *Message `json:"delta,omitempty"`
-	FinishReason string  `json:"finish_reason,omitempty"`
+	Index        int       `json:"index"`
+	Message      Message   `json:"message"`
+	Delta        *Message  `json:"delta,omitempty"`
+	FinishReason string    `json:"finish_reason,omitempty"`
 	Logprobs     *Logprobs `json:"logprobs,omitempty"`
 }
 
 // Logprobs represents token log probabilities.
 type Logprobs struct {
-	Tokens   []string             `json:"tokens,omitempty"`
-	TokenLogprobs []float64       `json:"token_logprobs,omitempty"`
+	Tokens        []string             `json:"tokens,omitempty"`
+	TokenLogprobs []float64            `json:"token_logprobs,omitempty"`
 	TopLogprobs   []map[string]float64 `json:"top_logprobs,omitempty"`
 }
 
@@ -319,24 +330,24 @@ type StreamChunk struct {
 	Done  bool  `json:"done,omitempty"`
 
 	// Stream metadata
-	Provider  string        `json:"provider,omitempty"`
-	RequestID string        `json:"request_id,omitempty"`
-	Timestamp time.Time     `json:"timestamp,omitempty"`
+	Provider  string    `json:"provider,omitempty"`
+	RequestID string    `json:"request_id,omitempty"`
+	Timestamp time.Time `json:"timestamp,omitempty"`
 }
 
 // Model represents information about an available model.
 type Model struct {
-	ID          string            `json:"id"`
-	Object      string            `json:"object,omitempty"`
-	Created     int64             `json:"created,omitempty"`
-	OwnedBy     string            `json:"owned_by,omitempty"`
-	Provider    string            `json:"provider"`
+	ID       string `json:"id"`
+	Object   string `json:"object,omitempty"`
+	Created  int64  `json:"created,omitempty"`
+	OwnedBy  string `json:"owned_by,omitempty"`
+	Provider string `json:"provider"`
 
 	// Model capabilities
-	MaxTokens         *int     `json:"max_tokens,omitempty"`
-	SupportsFunctions bool     `json:"supports_functions"`
-	SupportsStreaming bool     `json:"supports_streaming"`
-	SupportsVision    bool     `json:"supports_vision,omitempty"`
+	MaxTokens         *int `json:"max_tokens,omitempty"`
+	SupportsFunctions bool `json:"supports_functions"`
+	SupportsStreaming bool `json:"supports_streaming"`
+	SupportsVision    bool `json:"supports_vision,omitempty"`
 
 	// Pricing information (if available)
 	InputCostPer1K  *float64 `json:"input_cost_per_1k,omitempty"`
@@ -365,6 +376,7 @@ type StreamReader struct {
 	chunks <-chan StreamChunk
 	err    error
 	closed bool
+	mu     sync.Mutex
 }
 
 // NewStreamReader creates a new stream reader from a chunk channel.
@@ -375,23 +387,32 @@ func NewStreamReader(chunks <-chan StreamChunk) *StreamReader {
 // Read reads the next chunk from the stream.
 // Returns io.EOF when the stream is closed.
 func (r *StreamReader) Read() (StreamChunk, error) {
+	r.mu.Lock()
 	if r.closed {
+		r.mu.Unlock()
 		return StreamChunk{}, io.EOF
 	}
+	r.mu.Unlock()
 
 	chunk, ok := <-r.chunks
 	if !ok {
+		r.mu.Lock()
 		r.closed = true
+		r.mu.Unlock()
 		return StreamChunk{}, io.EOF
 	}
 
 	if chunk.Error != nil {
+		r.mu.Lock()
 		r.err = chunk.Error
+		r.mu.Unlock()
 		return chunk, chunk.Error
 	}
 
 	if chunk.Done {
+		r.mu.Lock()
 		r.closed = true
+		r.mu.Unlock()
 	}
 
 	return chunk, nil
@@ -399,26 +420,30 @@ func (r *StreamReader) Read() (StreamChunk, error) {
 
 // Close closes the stream reader.
 func (r *StreamReader) Close() error {
+	r.mu.Lock()
 	r.closed = true
+	r.mu.Unlock()
 	return nil
 }
 
 // Err returns any error that occurred during streaming.
 func (r *StreamReader) Err() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.err
 }
 
 // ProviderConfig represents configuration for a single provider.
 type ProviderConfig struct {
-	Type            string            `json:"type" validate:"required"`
-	APIKey          string            `json:"api_key,omitempty"`
-	BaseURL         string            `json:"base_url,omitempty"`
-	Organization    string            `json:"organization,omitempty"`
-	MaxRetries      int               `json:"max_retries,omitempty"`
-	Timeout         time.Duration     `json:"timeout,omitempty"`
-	RateLimit       string            `json:"rate_limit,omitempty"`
-	CustomHeaders   map[string]string `json:"custom_headers,omitempty"`
-	TLSVerify       *bool             `json:"tls_verify,omitempty"`
+	Type          string            `json:"type" validate:"required"`
+	APIKey        string            `json:"api_key,omitempty"`
+	BaseURL       string            `json:"base_url,omitempty"`
+	Organization  string            `json:"organization,omitempty"`
+	MaxRetries    int               `json:"max_retries,omitempty"`
+	Timeout       time.Duration     `json:"timeout,omitempty"`
+	RateLimit     string            `json:"rate_limit,omitempty"`
+	CustomHeaders map[string]string `json:"custom_headers,omitempty"`
+	TLSVerify     *bool             `json:"tls_verify,omitempty"`
 
 	// Provider-specific settings
 	Extra map[string]interface{} `json:"extra,omitempty"`
@@ -440,14 +465,14 @@ func (c *ProviderConfig) Validate() error {
 
 // RequestMetadata contains metadata about a request.
 type RequestMetadata struct {
-	RequestID   string            `json:"request_id"`
-	UserID      string            `json:"user_id,omitempty"`
-	SessionID   string            `json:"session_id,omitempty"`
-	Tags        []string          `json:"tags,omitempty"`
-	Custom      map[string]string `json:"custom,omitempty"`
-	StartTime   time.Time         `json:"start_time"`
-	Provider    string            `json:"provider"`
-	Model       string            `json:"model"`
+	RequestID string            `json:"request_id"`
+	UserID    string            `json:"user_id,omitempty"`
+	SessionID string            `json:"session_id,omitempty"`
+	Tags      []string          `json:"tags,omitempty"`
+	Custom    map[string]string `json:"custom,omitempty"`
+	StartTime time.Time         `json:"start_time"`
+	Provider  string            `json:"provider"`
+	Model     string            `json:"model"`
 }
 
 // ResponseMetadata contains metadata about a response.
@@ -569,11 +594,11 @@ const (
 	RoleTool      = "tool"
 
 	// Finish reasons
-	FinishReasonStop         = "stop"
-	FinishReasonLength       = "length"
-	FinishReasonToolCalls    = "tool_calls"
+	FinishReasonStop          = "stop"
+	FinishReasonLength        = "length"
+	FinishReasonToolCalls     = "tool_calls"
 	FinishReasonContentFilter = "content_filter"
-	FinishReasonTimeout      = "timeout"
+	FinishReasonTimeout       = "timeout"
 
 	// Tool types
 	ToolTypeFunction = "function"

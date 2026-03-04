@@ -365,11 +365,11 @@ type ModelInfo struct {
 
 type BenchmarkResult struct {
 	Provider        string        `json:"provider"`
-	Model          string        `json:"model"`
-	AvgLatency     time.Duration `json:"avg_latency"`
+	Model           string        `json:"model"`
+	AvgLatency      time.Duration `json:"avg_latency"`
 	TokensPerSecond float64       `json:"tokens_per_second"`
-	SuccessRate    float64       `json:"success_rate"`
-	TotalRequests  int           `json:"total_requests"`
+	SuccessRate     float64       `json:"success_rate"`
+	TotalRequests   int           `json:"total_requests"`
 }
 
 // Helper methods

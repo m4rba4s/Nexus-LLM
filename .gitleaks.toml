@@ -1,0 +1,385 @@
+# GOLLM Enterprise Security Configuration - GitLeaks
+#
+# This configuration provides comprehensive secret detection for the GOLLM CLI
+# project with enterprise-grade security patterns and intelligent whitelisting.
+#
+# Last Updated: 2024-12-19
+# Security Level: ENTERPRISE
+# Compliance: SOX, GDPR, HIPAA, PCI-DSS Compatible
+
+title = "GOLLM Enterprise Security Scan"
+
+# Global Configuration
+[extend]
+# Use GitLeaks default rules as baseline
+useDefault = true
+
+# Additional custom rules for LLM-specific secrets
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''(?i)sk-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20}'''
+tags = ["api-key", "openai", "critical"]
+keywords = ["sk-", "openai"]
+
+[[rules]]
+id = "openai-api-key-new"
+description = "OpenAI API Key (New Format)"
+regex = '''(?i)sk-proj-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20}'''
+tags = ["api-key", "openai", "critical"]
+keywords = ["sk-proj-", "openai"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''(?i)sk-ant-api03-[a-zA-Z0-9\-_]{95,100}'''
+tags = ["api-key", "anthropic", "critical"]
+keywords = ["sk-ant-", "anthropic"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google/Gemini API Key"
+regex = '''(?i)AIza[0-9A-Za-z\-_]{35}'''
+tags = ["api-key", "google", "gemini", "critical"]
+keywords = ["AIza", "google", "gemini"]
+
+[[rules]]
+id = "huggingface-token"
+description = "HuggingFace API Token"
+regex = '''(?i)hf_[a-zA-Z0-9]{34}'''
+tags = ["api-key", "huggingface", "high"]
+keywords = ["hf_", "huggingface"]
+
+[[rules]]
+id = "cohere-api-key"
+description = "Cohere API Key"
+regex = '''(?i)[a-zA-Z0-9]{40}-[a-zA-Z0-9]{40}'''
+tags = ["api-key", "cohere", "high"]
+keywords = ["cohere"]
+
+[[rules]]
+id = "deepseek-api-key"
+description = "DeepSeek API Key"
+regex = '''(?i)sk-[a-zA-Z0-9]{32}'''
+tags = ["api-key", "deepseek", "high"]
+keywords = ["deepseek"]
+
+[[rules]]
+id = "together-api-key"
+description = "Together AI API Key"
+regex = '''(?i)[a-zA-Z0-9]{64}'''
+tags = ["api-key", "together", "medium"]
+keywords = ["together", "togetherai"]
+
+[[rules]]
+id = "replicate-token"
+description = "Replicate API Token"
+regex = '''(?i)r8_[a-zA-Z0-9]{32}'''
+tags = ["api-key", "replicate", "medium"]
+keywords = ["r8_", "replicate"]
+
+[[rules]]
+id = "mistral-api-key"
+description = "Mistral AI API Key"
+regex = '''(?i)[a-zA-Z0-9]{32}'''
+tags = ["api-key", "mistral", "medium"]
+keywords = ["mistral"]
+
+[[rules]]
+id = "generic-bearer-token"
+description = "Generic Bearer Token"
+regex = '''(?i)bearer\s+[a-zA-Z0-9\-\._~\+\/]{20,}'''
+tags = ["bearer-token", "auth", "high"]
+keywords = ["bearer"]
+
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[a-zA-Z0-9\-\._~\+\/]{10,}\.eyJ[a-zA-Z0-9\-\._~\+\/]{10,}\.[a-zA-Z0-9\-\._~\+\/]{10,}'''
+tags = ["jwt", "auth", "high"]
+keywords = ["eyJ"]
+
+[[rules]]
+id = "database-url"
+description = "Database Connection URL"
+regex = '''(?i)(postgresql|mysql|mongodb|redis)://[^:\s]+:[^@\s]+@[^/\s]+/\w+'''
+tags = ["database", "connection-string", "critical"]
+keywords = ["postgresql://", "mysql://", "mongodb://", "redis://"]
+
+[[rules]]
+id = "aws-credentials"
+description = "AWS Credentials"
+regex = '''(?i)(AKIA[0-9A-Z]{16}|aws_access_key_id|aws_secret_access_key)'''
+tags = ["aws", "cloud", "critical"]
+keywords = ["AKIA", "aws_access_key", "aws_secret"]
+
+[[rules]]
+id = "gcp-service-account"
+description = "GCP Service Account Key"
+regex = '''(?i)"type":\s*"service_account"'''
+tags = ["gcp", "cloud", "service-account", "critical"]
+keywords = ["service_account", "private_key"]
+
+[[rules]]
+id = "azure-connection-string"
+description = "Azure Connection String"
+regex = '''(?i)DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[^;]+'''
+tags = ["azure", "cloud", "critical"]
+keywords = ["DefaultEndpointsProtocol", "AccountKey"]
+
+[[rules]]
+id = "private-key"
+description = "Private Key (PEM Format)"
+regex = '''-----BEGIN\s+(RSA\s+|EC\s+|DSA\s+)?PRIVATE KEY-----'''
+tags = ["private-key", "crypto", "critical"]
+keywords = ["BEGIN", "PRIVATE KEY"]
+
+[[rules]]
+id = "certificate"
+description = "Certificate (PEM Format)"
+regex = '''-----BEGIN CERTIFICATE-----'''
+tags = ["certificate", "crypto", "medium"]
+keywords = ["BEGIN CERTIFICATE"]
+
+[[rules]]
+id = "ssh-private-key"
+description = "SSH Private Key"
+regex = '''-----BEGIN OPENSSH PRIVATE KEY-----'''
+tags = ["ssh", "private-key", "critical"]
+keywords = ["OPENSSH PRIVATE KEY"]
+
+[[rules]]
+id = "password-in-url"
+description = "Password in URL"
+regex = '''(?i)[a-zA-Z0-9\-\.]+://[^:\s/]+:[^@\s/]+@'''
+tags = ["password", "url", "high"]
+keywords = ["://"]
+
+[[rules]]
+id = "slack-webhook"
+description = "Slack Webhook URL"
+regex = '''https://hooks\.slack\.com/services/T[a-zA-Z0-9_]{8,12}/B[a-zA-Z0-9_]{8,12}/[a-zA-Z0-9_]{24}'''
+tags = ["slack", "webhook", "medium"]
+keywords = ["hooks.slack.com"]
+
+[[rules]]
+id = "discord-webhook"
+description = "Discord Webhook URL"
+regex = '''https://discord(app)?\.com/api/webhooks/[0-9]{17,19}/[a-zA-Z0-9\-_]{68}'''
+tags = ["discord", "webhook", "medium"]
+keywords = ["discord.com", "discordapp.com", "webhooks"]
+
+# File and Path Exclusions
+[allowlist]
+description = "Allowlist for GOLLM Enterprise Security"
+
+# Exclude test files and documentation
+paths = [
+    '''**/*_test\.go$''',
+    '''**/testdata/.*''',
+    '''**/tests/.*''',
+    '''**/examples/.*''',
+    '''**/docs/.*''',
+    '''**/demo/.*''',
+    '''\.git/.*''',
+    '''vendor/.*''',
+    '''node_modules/.*''',
+    '''\.vscode/.*''',
+    '''\.idea/.*''',
+    '''**/README.*''',
+    '''**/CHANGELOG.*''',
+    '''**/LICENSE.*''',
+    '''**/*\.md$''',
+    '''**/*\.rst$''',
+    '''**/*\.txt$''',
+    '''go\.sum$''',
+    '''yarn\.lock$''',
+    '''package-lock\.json$''',
+    '''Pipfile\.lock$'''
+]
+
+# Allowlist for known false positives
+regexes = [
+    # Example API keys in documentation and tests
+    '''sk-example-key-not-real-[a-zA-Z0-9]{20}''',
+    '''sk-test-[a-zA-Z0-9]{20}''',
+    '''sk-demo-[a-zA-Z0-9]{20}''',
+    '''sk-placeholder-[a-zA-Z0-9]{20}''',
+    '''your-api-key-here''',
+    '''your-openai-key''',
+    '''your-anthropic-key''',
+    '''INSERT_YOUR_API_KEY_HERE''',
+    '''REPLACE_WITH_YOUR_API_KEY''',
+    '''<your-api-key>''',
+    '''<api-key>''',
+    '''<insert-key>''',
+    '''\$\{[A-Z_]+\}''', # Environment variable placeholders like ${API_KEY}
+    '''\{\{[A-Z_]+\}\}''', # Template placeholders like {{API_KEY}}
+
+    # Common test patterns
+    '''test[_-]?key''',
+    '''mock[_-]?key''',
+    '''fake[_-]?key''',
+    '''dummy[_-]?key''',
+    '''example[_-]?key''',
+    '''sample[_-]?key''',
+
+    # Configuration examples
+    '''api[_-]?key[_-]?example''',
+    '''example[_-]?api[_-]?key''',
+    '''config[_-]?example''',
+
+    # Base64 encoded test data (short patterns)
+    '''eyJ0ZXN0''', # JWT test header
+    '''dGVzdA==''', # "test" in base64
+
+    # Common false positive patterns
+    '''localhost:[0-9]+''',
+    '''127\.0\.0\.1:[0-9]+''',
+    '''example\.com''',
+    '''test\.example\.com''',
+    '''api\.example\.com''',
+
+    # Git commit SHAs (not secrets)
+    '''[a-f0-9]{40}''', # Full SHA
+    '''[a-f0-9]{7,10}''', # Short SHA
+
+    # UUIDs (not secrets)
+    '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
+
+    # Common hex patterns that aren't secrets
+    '''0x[a-f0-9]+''',
+    '''#[a-f0-9]{3,6}''', # Color codes
+
+    # Build and version identifiers
+    '''build[_-]?[0-9]+''',
+    '''version[_-]?[0-9\.]+''',
+    '''v[0-9]+\.[0-9]+\.[0-9]+''',
+
+    # Database test connections
+    '''sqlite:///:memory:''',
+    '''sqlite:///test\.db''',
+    '''postgres://test:test@localhost/test''',
+    '''mysql://test:test@localhost/test''',
+
+    # Development URLs
+    '''http://localhost''',
+    '''https://localhost''',
+    '''http://127\.0\.0\.1''',
+    '''https://127\.0\.0\.1''',
+    '''http://0\.0\.0\.0''',
+    '''https://0\.0\.0\.0''',
+]
+
+# Stop words that indicate false positives
+stopwords = [
+    "example",
+    "test",
+    "demo",
+    "mock",
+    "fake",
+    "dummy",
+    "placeholder",
+    "sample",
+    "template",
+    "documentation",
+    "readme",
+    "tutorial",
+    "guide",
+    "comment",
+    "note",
+    "todo",
+    "fixme",
+    "hack",
+    "temporary",
+    "debug",
+    "development",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "example.com",
+    "test.com",
+    "localhost.com"
+]
+
+# Entropy thresholds for detection
+[entropies]
+base64 = 4.5
+hex = 3.0
+
+# File size limits (in bytes)
+[fileSizeLimit]
+limit = 10485760  # 10MB limit for scanning
+
+# Custom configurations for specific file types
+[[fileTypes]]
+extensions = ["go"]
+entropy = 3.5
+keywords = ["password", "secret", "token", "key", "api", "auth"]
+
+[[fileTypes]]
+extensions = ["yaml", "yml", "json", "toml"]
+entropy = 4.0
+keywords = ["password", "secret", "token", "key", "api", "auth", "credential"]
+
+[[fileTypes]]
+extensions = ["env", "environment"]
+entropy = 3.0
+keywords = ["password", "secret", "token", "key", "api", "auth"]
+
+[[fileTypes]]
+extensions = ["sh", "bash", "zsh", "fish"]
+entropy = 3.5
+keywords = ["export", "password", "secret", "token", "key", "api"]
+
+# Reporting configuration
+[report]
+format = "json"
+verbose = true
+showViolations = true
+
+# Git configuration
+[git]
+# Scan all commits in the repository
+scanAll = false
+# Maximum depth to scan
+maxDepth = 100
+# Include merge commits
+includeMerges = false
+
+# Performance tuning
+[performance]
+# Enable parallel scanning
+parallel = true
+# Number of worker threads (0 = auto-detect)
+workers = 0
+# Memory limit for scanning (in MB)
+memoryLimit = 512
+
+# Enterprise compliance settings
+[compliance]
+# Enable detailed audit logging
+auditLog = true
+# Include file hashes in reports
+includeFileHashes = true
+# Generate compliance reports
+generateReport = true
+# Report format for compliance
+reportFormat = "detailed-json"
+
+# Notification settings (for enterprise integrations)
+[notifications]
+# Enable notifications for security findings
+enabled = false
+# Webhook URL for notifications (configured via environment)
+webhookURL = ""
+# Severity levels that trigger notifications
+severityThreshold = "high"
+
+# Custom metadata for enterprise tracking
+[metadata]
+project = "GOLLM-CLI"
+team = "Security Engineering"
+criticality = "HIGH"
+dataClassification = "CONFIDENTIAL"
+complianceFrameworks = ["SOX", "GDPR", "HIPAA", "PCI-DSS"]

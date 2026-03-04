@@ -1,0 +1,5 @@
+./global_registry.go
+./integration.go
+./provider.go
+./types.go
+./types_docs.go

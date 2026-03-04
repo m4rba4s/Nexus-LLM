@@ -5,11 +5,12 @@
 // provider settings, model parameters, and other configuration options.
 //
 // Usage:
-//   gollm profile list
-//   gollm profile show coding
-//   gollm profile create my-profile --provider deepseek --model deepseek-chat
-//   gollm profile switch creative
-//   gollm profile delete old-profile
+//
+//	gollm profile list
+//	gollm profile show coding
+//	gollm profile create my-profile --provider deepseek --model deepseek-chat
+//	gollm profile switch creative
+//	gollm profile delete old-profile
 package commands
 
 import (
@@ -29,31 +30,31 @@ import (
 // ProfileFlags holds all profile command configuration.
 type ProfileFlags struct {
 	// Creation/editing flags
-	Provider          string
-	Model             string
-	Description       string
-	Temperature       float64
-	MaxTokens         int
-	TopP              float64
-	FrequencyPenalty  float64
-	PresencePenalty   float64
-	SystemMessage     string
-	Stream            bool
-	NoStream          bool
-	Timeout           string
-	Tags              []string
-	Inherits          string
+	Provider         string
+	Model            string
+	Description      string
+	Temperature      float64
+	MaxTokens        int
+	TopP             float64
+	FrequencyPenalty float64
+	PresencePenalty  float64
+	SystemMessage    string
+	Stream           bool
+	NoStream         bool
+	Timeout          string
+	Tags             []string
+	Inherits         string
 
 	// Display flags
-	OutputFormat      string
-	Quiet             bool
-	Verbose           bool
-	ShowInheritance   bool
-	ShowTimestamps    bool
+	OutputFormat    string
+	Quiet           bool
+	Verbose         bool
+	ShowInheritance bool
+	ShowTimestamps  bool
 
 	// Filter flags
-	Tag               string
-	ProviderFilter    string
+	Tag            string
+	ProviderFilter string
 }
 
 // NewProfileCommand creates the profile management command.

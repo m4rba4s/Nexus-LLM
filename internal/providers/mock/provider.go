@@ -38,44 +38,44 @@ import (
 
 // Provider implements a mock LLM provider for testing and development.
 type Provider struct {
-	mu       sync.RWMutex
-	config   Config
-	models   []core.Model
-	metrics  *core.ProviderMetrics
+	mu      sync.RWMutex
+	config  Config
+	models  []core.Model
+	metrics *core.ProviderMetrics
 
 	// Configurable responses and behaviors
-	responses     map[string]string          // Model -> response mapping
-	errors        map[string]error           // Model -> error mapping
-	latencies     map[string]time.Duration   // Model -> latency mapping
-	streamChunks  map[string][]string        // Model -> stream chunks mapping
-	requestCount  map[string]int             // Model -> request count
+	responses    map[string]string        // Model -> response mapping
+	errors       map[string]error         // Model -> error mapping
+	latencies    map[string]time.Duration // Model -> latency mapping
+	streamChunks map[string][]string      // Model -> stream chunks mapping
+	requestCount map[string]int           // Model -> request count
 
 	// Global behaviors
-	globalResponse   string
-	globalError      error
-	globalLatency    time.Duration
-	failAfterCount   int  // Fail after N requests
-	rateLimitAfter   int  // Rate limit after N requests
-	shouldStream     bool
-	chunkDelay       time.Duration
+	globalResponse string
+	globalError    error
+	globalLatency  time.Duration
+	failAfterCount int // Fail after N requests
+	rateLimitAfter int // Rate limit after N requests
+	shouldStream   bool
+	chunkDelay     time.Duration
 }
 
 // Config configures the mock provider behavior.
 type Config struct {
-	Name               string        `json:"name"`
-	DefaultModel       string        `json:"default_model"`
-	SupportedModels    []string      `json:"supported_models"`
-	Latency            time.Duration `json:"latency"`
-	ErrorRate          float64       `json:"error_rate"`          // 0.0-1.0
-	EnableStreaming    bool          `json:"enable_streaming"`
-	StreamChunkDelay   time.Duration `json:"stream_chunk_delay"`
-	MaxTokens          int           `json:"max_tokens"`
-	EnableFunctions    bool          `json:"enable_functions"`
-	EnableVision       bool          `json:"enable_vision"`
+	Name             string        `json:"name"`
+	DefaultModel     string        `json:"default_model"`
+	SupportedModels  []string      `json:"supported_models"`
+	Latency          time.Duration `json:"latency"`
+	ErrorRate        float64       `json:"error_rate"` // 0.0-1.0
+	EnableStreaming  bool          `json:"enable_streaming"`
+	StreamChunkDelay time.Duration `json:"stream_chunk_delay"`
+	MaxTokens        int           `json:"max_tokens"`
+	EnableFunctions  bool          `json:"enable_functions"`
+	EnableVision     bool          `json:"enable_vision"`
 
 	// Cost simulation
-	InputCostPer1K     float64       `json:"input_cost_per_1k"`
-	OutputCostPer1K    float64       `json:"output_cost_per_1k"`
+	InputCostPer1K  float64 `json:"input_cost_per_1k"`
+	OutputCostPer1K float64 `json:"output_cost_per_1k"`
 }
 
 // DefaultConfig returns sensible defaults for the mock provider.
@@ -148,16 +148,16 @@ func New(config Config) *Provider {
 	}
 
 	return &Provider{
-		config:        config,
-		models:        models,
-		metrics:       core.NewProviderMetrics(),
-		responses:     make(map[string]string),
-		errors:        make(map[string]error),
-		latencies:     make(map[string]time.Duration),
-		streamChunks:  make(map[string][]string),
-		requestCount:  make(map[string]int),
-		shouldStream:  config.EnableStreaming,
-		chunkDelay:    config.StreamChunkDelay,
+		config:       config,
+		models:       models,
+		metrics:      core.NewProviderMetrics(),
+		responses:    make(map[string]string),
+		errors:       make(map[string]error),
+		latencies:    make(map[string]time.Duration),
+		streamChunks: make(map[string][]string),
+		requestCount: make(map[string]int),
+		shouldStream: config.EnableStreaming,
+		chunkDelay:   config.StreamChunkDelay,
 	}
 }
 
@@ -522,31 +522,64 @@ func (p *Provider) getResponse(model string, req *core.CompletionRequest) string
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	// Check model-specific response
-	if response, exists := p.responses[model]; exists {
-		return response
+	// Extract last user message
+	last := ""
+	for i := len(req.Messages) - 1; i >= 0; i-- {
+		if req.Messages[i].Role == core.RoleUser {
+			last = req.Messages[i].Content
+			break
+		}
+	}
+	if last == "" {
+		return "Hello! I'm a mock assistant. How can I help you?"
 	}
 
-	// Check global response
+    // Helpers
+    // containsCode detects if any line in the prompt looks like a code start.
+    containsCode := func(s string) bool {
+        // Quick lowercased scan across lines to tolerate prompt prefixes
+        for _, line := range strings.Split(s, "\n") {
+            l := strings.TrimSpace(strings.ToLower(line))
+            if strings.HasPrefix(l, "def ") || strings.HasPrefix(l, "func ") || strings.HasPrefix(l, "class ") {
+                return true
+            }
+        }
+        return false
+    }
+
+    // 1) Code prompt → prefer model-specific response if present
+    if containsCode(last) {
+        if resp, ok := p.responses[model]; ok {
+            return resp
+        }
+        // Default illustrative code completion when none is configured
+        return "def fibonacci(n):\n    if n <= 1:\n        return n\n\nfunc factorial(n int) int {\n    if n <= 1 {\n        return 1\n    }\n}\n\nclass Calculator:\n    def __init__(self):\n        self.total = 0\n"
+    }
+
+	// 2) Heuristic canned replies for common prompts
+	lower := strings.ToLower(last)
+	if strings.Contains(lower, "hello, world") || strings.Contains(lower, "привет") {
+		return "Hello there!"
+	}
+	if strings.Contains(lower, "what is go") {
+		return "Go is a programming language developed by Google"
+	}
+	if strings.Contains(lower, "tell me a story") {
+		return "Once upon a time there was a blazing fast Go CLI named GOLLM..."
+	}
+
+	// 3) Prefer model-specific mapping over global for general prompts
+	if resp, ok := p.responses[model]; ok {
+		return resp
+	}
+
+	// 4) Global response fallback
 	if p.globalResponse != "" {
 		return p.globalResponse
 	}
 
-	// Generate default response based on the last user message
-	var lastUserMessage string
-	for i := len(req.Messages) - 1; i >= 0; i-- {
-		if req.Messages[i].Role == core.RoleUser {
-			lastUserMessage = req.Messages[i].Content
-			break
-		}
-	}
-
-	if lastUserMessage == "" {
-		return "Hello! I'm a mock assistant. How can I help you?"
-	}
-
-	// Generate contextual response
-	return fmt.Sprintf("Mock response to: %s", lastUserMessage)
+	// 5) Contextual default
+	return fmt.Sprintf("Mock response to: %s", last)
 }
 
 // getStreamChunks returns stream chunks for a model.
@@ -632,8 +665,9 @@ func (p *Provider) calculateCost(usage *core.Usage) float64 {
 func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
 	// Convert core config to mock-specific config
 	mockConfig := Config{
-		Name:         "mock",
-		DefaultModel: "mock-gpt-3.5-turbo",
+		Name:            "mock",
+		DefaultModel:    "mock-gpt-3.5-turbo",
+		EnableStreaming: true,
 		SupportedModels: []string{
 			"mock-gpt-3.5-turbo",
 			"mock-gpt-4",
@@ -670,9 +704,5 @@ func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
 
 // init registers the mock provider factory with the global registry.
 func init() {
-	err := core.RegisterProviderFactory("mock", NewFromConfig)
-	if err != nil {
-		// This should never happen during normal initialization
-		panic(fmt.Sprintf("failed to register mock provider factory: %v", err))
-	}
+	core.RegisterProviderFactory("mock", NewFromConfig)
 }

@@ -51,9 +51,9 @@ type Provider struct {
 	metrics *core.ProviderMetrics
 
 	// Model capabilities cache
-	modelsCache      []core.Model
-	modelsCacheTime  time.Time
-	modelsCacheTTL   time.Duration
+	modelsCache     []core.Model
+	modelsCacheTime time.Time
+	modelsCacheTTL  time.Duration
 }
 
 // Config configures the OpenAI provider.
@@ -70,18 +70,18 @@ type Config struct {
 
 	// Features
 	EnableFunctionCalling bool `json:"enable_function_calling,omitempty"`
-	EnableVision         bool `json:"enable_vision,omitempty"`
+	EnableVision          bool `json:"enable_vision,omitempty"`
 }
 
 // DefaultConfig returns sensible defaults for the OpenAI provider.
 func DefaultConfig() Config {
 	return Config{
-		BaseURL:              DefaultBaseURL,
-		Timeout:              DefaultTimeout,
-		MaxRetries:           3,
-		UserAgent:            UserAgent,
+		BaseURL:               DefaultBaseURL,
+		Timeout:               DefaultTimeout,
+		MaxRetries:            3,
+		UserAgent:             UserAgent,
 		EnableFunctionCalling: true,
-		EnableVision:         true,
+		EnableVision:          true,
 	}
 }
 
@@ -122,10 +122,10 @@ func New(config Config) (*Provider, error) {
 	}
 
 	provider := &Provider{
-		config:          config,
-		client:          client,
-		metrics:         core.NewProviderMetrics(),
-		modelsCacheTTL:  5 * time.Minute,
+		config:         config,
+		client:         client,
+		metrics:        core.NewProviderMetrics(),
+		modelsCacheTTL: 5 * time.Minute,
 	}
 
 	return provider, nil
@@ -811,18 +811,18 @@ func (p *Provider) GetMetrics() *core.ProviderMetrics {
 // OpenAI API types
 
 type openaiCompletionRequest struct {
-	Model            string            `json:"model"`
-	Messages         []openaiMessage   `json:"messages"`
-	MaxTokens        *int              `json:"max_tokens,omitempty"`
-	Temperature      *float64          `json:"temperature,omitempty"`
-	TopP             *float64          `json:"top_p,omitempty"`
-	FrequencyPenalty *float64          `json:"frequency_penalty,omitempty"`
-	PresencePenalty  *float64          `json:"presence_penalty,omitempty"`
-	Stop             []string          `json:"stop,omitempty"`
-	Stream           bool              `json:"stream,omitempty"`
-	Tools            []openaiTool      `json:"tools,omitempty"`
-	ToolChoice       *string           `json:"tool_choice,omitempty"`
-	User             string            `json:"user,omitempty"`
+	Model            string          `json:"model"`
+	Messages         []openaiMessage `json:"messages"`
+	MaxTokens        *int            `json:"max_tokens,omitempty"`
+	Temperature      *float64        `json:"temperature,omitempty"`
+	TopP             *float64        `json:"top_p,omitempty"`
+	FrequencyPenalty *float64        `json:"frequency_penalty,omitempty"`
+	PresencePenalty  *float64        `json:"presence_penalty,omitempty"`
+	Stop             []string        `json:"stop,omitempty"`
+	Stream           bool            `json:"stream,omitempty"`
+	Tools            []openaiTool    `json:"tools,omitempty"`
+	ToolChoice       *string         `json:"tool_choice,omitempty"`
+	User             string          `json:"user,omitempty"`
 }
 
 type openaiMessage struct {
@@ -856,12 +856,12 @@ type openaiToolFunction struct {
 }
 
 type openaiCompletionResponse struct {
-	ID      string          `json:"id"`
-	Object  string          `json:"object"`
-	Created int64           `json:"created"`
-	Model   string          `json:"model"`
-	Choices []openaiChoice  `json:"choices"`
-	Usage   openaiUsage     `json:"usage"`
+	ID      string         `json:"id"`
+	Object  string         `json:"object"`
+	Created int64          `json:"created"`
+	Model   string         `json:"model"`
+	Choices []openaiChoice `json:"choices"`
+	Usage   openaiUsage    `json:"usage"`
 }
 
 type openaiChoice struct {
@@ -877,12 +877,12 @@ type openaiUsage struct {
 }
 
 type openaiStreamChunk struct {
-	ID      string                `json:"id"`
-	Object  string                `json:"object"`
-	Created int64                 `json:"created"`
-	Model   string                `json:"model"`
-	Choices []openaiStreamChoice  `json:"choices"`
-	Usage   *openaiUsage          `json:"usage,omitempty"`
+	ID      string               `json:"id"`
+	Object  string               `json:"object"`
+	Created int64                `json:"created"`
+	Model   string               `json:"model"`
+	Choices []openaiStreamChoice `json:"choices"`
+	Usage   *openaiUsage         `json:"usage,omitempty"`
 }
 
 type openaiStreamChoice struct {
@@ -913,9 +913,5 @@ type openaiErrorResponse struct {
 
 // init registers the OpenAI provider factory with the global registry.
 func init() {
-	err := core.RegisterProviderFactory("openai", NewFromConfig)
-	if err != nil {
-		// This should never happen during normal initialization
-		panic(fmt.Sprintf("failed to register OpenAI provider factory: %v", err))
-	}
+	core.RegisterProviderFactory("openai", NewFromConfig)
 }

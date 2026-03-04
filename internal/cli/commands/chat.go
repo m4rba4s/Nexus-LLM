@@ -27,8 +27,11 @@ import (
 
 	// Import providers to trigger their init() registration
 	_ "github.com/yourusername/gollm/internal/providers/anthropic"
+	_ "github.com/yourusername/gollm/internal/providers/deepseek"
+	_ "github.com/yourusername/gollm/internal/providers/gemini"
 	_ "github.com/yourusername/gollm/internal/providers/mock"
 	_ "github.com/yourusername/gollm/internal/providers/openai"
+	_ "github.com/yourusername/gollm/internal/providers/openrouter"
 )
 
 // ChatFlags contains flags specific to the chat command.
@@ -44,6 +47,7 @@ type ChatFlags struct {
 	Stream           bool
 	NoStream         bool
 	OutputFile       string
+	Format           string
 	Interactive      bool
 	Quiet            bool
 	Raw              bool
@@ -52,8 +56,8 @@ type ChatFlags struct {
 
 // CommandContext contains the shared context needed by commands.
 type CommandContext struct {
-	Config   *config.Config
-	Timeout  time.Duration
+	Config  *config.Config
+	Timeout time.Duration
 }
 
 // NewChatCommand creates the chat command.
@@ -136,12 +140,14 @@ func addChatFlags(cmd *cobra.Command, flags *ChatFlags) {
 		"system message to set context")
 
 	// Output and behavior flags
-	f.BoolVar(&flags.Stream, "stream", true,
-		"stream response tokens (default)")
+	f.BoolVar(&flags.Stream, "stream", false,
+		"stream response tokens")
 	f.BoolVar(&flags.NoStream, "no-stream", false,
 		"disable streaming and wait for complete response")
-	f.StringVar(&flags.OutputFile, "output", "",
+	f.StringVar(&flags.OutputFile, "output-file", "",
 		"save response to file")
+	f.StringVar(&flags.Format, "output", "",
+		"output format (text, json, yaml)")
 	f.BoolVar(&flags.Interactive, "interactive", false,
 		"enter interactive mode after response")
 	f.BoolVar(&flags.Quiet, "quiet", false,
@@ -169,11 +175,16 @@ func runChatCommand(cmd *cobra.Command, args []string, flags *ChatFlags) error {
 	}
 
 	if message == "" {
-		return fmt.Errorf("no message provided (use argument or pipe from stdin)")
+		return fmt.Errorf("message is required")
 	}
 
-	// Load configuration
-	cfg, err := config.Load()
+	// Validate flags
+	if err := validateChatFlagsRuntime(flags); err != nil {
+		return err
+	}
+
+	// Load configuration (or injected config during tests)
+	cfg, err := getInjectedOrLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -201,14 +212,30 @@ func runChatCommand(cmd *cobra.Command, args []string, flags *ChatFlags) error {
 		return fmt.Errorf("failed to build request: %w", err)
 	}
 
-	// Determine if we should stream
-	shouldStream := flags.Stream && !flags.NoStream
+	// Determine output format from global flag or config
+	outputFormat := flags.Format
+	if outputFormat == "" {
+		outputFormat = getOutputFormat(cmd)
+	}
+	if outputFormat == "" && cfg != nil {
+		outputFormat = cfg.Settings.OutputFormat
+	}
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+
+	// Determine if we should stream (only for text output)
+	shouldStream := flags.Stream && !flags.NoStream && outputFormat == "text"
+
+	// Resolve writers from Cobra (respect tests and redirection)
+	out := cmd.OutOrStdout()
+	errOut := cmd.ErrOrStderr()
 
 	// Execute request
 	if shouldStream {
-		return executeStreamingChat(ctx, provider, request, flags)
+		return executeStreamingChat(ctx, provider, request, flags, out, errOut)
 	} else {
-		return executeNonStreamingChat(ctx, provider, request, flags)
+		return executeNonStreamingChat(ctx, provider, request, flags, out, errOut, outputFormat)
 	}
 }
 
@@ -267,6 +294,12 @@ func resolveProviderAndModel(flags *ChatFlags, cfg *config.Config) (string, stri
 		}
 	}
 
+	// Validate provider exists
+	if !cfg.HasProvider(providerName) {
+		return "", "", fmt.Errorf("provider not configured; available providers: %s",
+			strings.Join(cfg.ListProviders(), ", "))
+	}
+
 	// Use model from flag, provider default, or config default
 	if flags.Model != "" {
 		model = flags.Model
@@ -279,7 +312,17 @@ func resolveProviderAndModel(flags *ChatFlags, cfg *config.Config) (string, stri
 		if providerConfig.DefaultModel != "" {
 			model = providerConfig.DefaultModel
 		} else {
-			return "", "", fmt.Errorf("no model specified and no default configured for provider %s", providerName)
+			// Fallback: pick a reasonable default model based on provider type/name
+			switch strings.ToLower(providerConfig.Type) {
+			case "mock":
+				model = "mock-gpt-3.5-turbo"
+			case "openai":
+				model = "gpt-3.5-turbo"
+			case "anthropic":
+				model = "claude-3-haiku-20240307"
+			default:
+				model = "default"
+			}
 		}
 	}
 
@@ -288,13 +331,24 @@ func resolveProviderAndModel(flags *ChatFlags, cfg *config.Config) (string, stri
 
 // createProvider creates a provider instance based on the provider name and config.
 func createProvider(providerName string, cfg *config.Config) (core.Provider, error) {
+	// Validate provider exists before proceeding
+	if !cfg.HasProvider(providerName) {
+		available := cfg.ListProviders()
+		return nil, fmt.Errorf("provider %q not configured; available providers: %s",
+			providerName, strings.Join(available, ", "))
+	}
 	providerConfig, _, err := cfg.GetProvider(providerName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("provider %q not configured", providerName)
 	}
 
 	// Convert config.ProviderConfig to core.ProviderConfig
 	coreConfig := providerConfig.ToProviderConfig()
+
+	// Use injected factory if provided (tests)
+	if injectedProviderFactory != nil {
+		return injectedProviderFactory(providerConfig.Type, coreConfig)
+	}
 
 	// Use the registry to create the provider
 	provider, err := core.CreateProviderFromConfig(providerConfig.Type, coreConfig)
@@ -346,12 +400,12 @@ func buildChatRequest(message, model string, flags *ChatFlags) (*core.Completion
 }
 
 // executeStreamingChat executes a streaming chat request.
-func executeStreamingChat(ctx context.Context, provider core.Provider, request *core.CompletionRequest, flags *ChatFlags) error {
+func executeStreamingChat(ctx context.Context, provider core.Provider, request *core.CompletionRequest, flags *ChatFlags, out io.Writer, errOut io.Writer) error {
 	// Check if provider supports streaming
 	_, supportsStreaming := provider.(core.Streamer)
 	if !supportsStreaming {
-		fmt.Fprintf(os.Stderr, "Warning: Provider %s does not support streaming, falling back to non-streaming\n", provider.Name())
-		return executeNonStreamingChat(ctx, provider, request, flags)
+		fmt.Fprintf(errOut, "Warning: Provider %s does not support streaming, falling back to non-streaming\n", provider.Name())
+		return executeNonStreamingChat(ctx, provider, request, flags, out, errOut, "text")
 	}
 
 	streamer := provider.(core.Streamer)
@@ -360,7 +414,7 @@ func executeStreamingChat(ctx context.Context, provider core.Provider, request *
 		return fmt.Errorf("failed to start streaming: %w", err)
 	}
 
-	var outputWriter io.Writer = os.Stdout
+	var outputWriter io.Writer = out
 	var outputFile *os.File
 
 	// Set up output file if specified
@@ -370,7 +424,7 @@ func executeStreamingChat(ctx context.Context, provider core.Provider, request *
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
 		defer outputFile.Close()
-		outputWriter = io.MultiWriter(os.Stdout, outputFile)
+		outputWriter = io.MultiWriter(out, outputFile)
 	}
 
 	// Process streaming chunks
@@ -418,7 +472,7 @@ func executeStreamingChat(ctx context.Context, provider core.Provider, request *
 
 	// Show usage statistics if not quiet
 	if !flags.Quiet && !flags.Raw && totalUsage != nil {
-		fmt.Fprintf(os.Stderr, "\n[Tokens: %d prompt + %d completion = %d total]\n",
+		fmt.Fprintf(errOut, "\n[Tokens: %d prompt + %d completion = %d total]\n",
 			totalUsage.PromptTokens, totalUsage.CompletionTokens, totalUsage.TotalTokens)
 	}
 
@@ -426,7 +480,7 @@ func executeStreamingChat(ctx context.Context, provider core.Provider, request *
 }
 
 // executeNonStreamingChat executes a non-streaming chat request.
-func executeNonStreamingChat(ctx context.Context, provider core.Provider, request *core.CompletionRequest, flags *ChatFlags) error {
+func executeNonStreamingChat(ctx context.Context, provider core.Provider, request *core.CompletionRequest, flags *ChatFlags, out io.Writer, errOut io.Writer, outputFormat string) error {
 	// Disable streaming in request
 	request.Stream = false
 
@@ -435,7 +489,7 @@ func executeNonStreamingChat(ctx context.Context, provider core.Provider, reques
 		return fmt.Errorf("failed to create completion: %w", err)
 	}
 
-	var outputWriter io.Writer = os.Stdout
+	var outputWriter io.Writer = out
 	var outputFile *os.File
 
 	// Set up output file if specified
@@ -445,7 +499,7 @@ func executeNonStreamingChat(ctx context.Context, provider core.Provider, reques
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
 		defer outputFile.Close()
-		outputWriter = io.MultiWriter(os.Stdout, outputFile)
+		outputWriter = io.MultiWriter(out, outputFile)
 	}
 
 	// Extract response content
@@ -457,20 +511,46 @@ func executeNonStreamingChat(ctx context.Context, provider core.Provider, reques
 	// Output response
 	if flags.Raw {
 		fmt.Fprint(outputWriter, responseContent)
+	} else if outputFormat == "json" {
+		fmt.Fprintf(outputWriter, "{\"content\":%q}\n", responseContent)
+	} else if outputFormat == "yaml" {
+		fmt.Fprintf(outputWriter, "content: |\n  %s\n", strings.ReplaceAll(responseContent, "\n", "\n  "))
 	} else {
 		fmt.Fprintln(outputWriter, responseContent)
 	}
 
 	// Show usage statistics if not quiet
 	if !flags.Quiet && !flags.Raw {
-		fmt.Fprintf(os.Stderr, "\n[Tokens: %d prompt + %d completion = %d total]\n",
+		fmt.Fprintf(errOut, "\n[Tokens: %d prompt + %d completion = %d total]\n",
 			response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
 		if response.ResponseTime > 0 {
-			fmt.Fprintf(os.Stderr, "[Response time: %v]\n", response.ResponseTime)
+			fmt.Fprintf(errOut, "[Response time: %v]\n", response.ResponseTime)
 		}
 	}
 
 	return nil
+}
+
+// getOutputFormat reads the persistent/global output format flag if set.
+func getOutputFormat(cmd *cobra.Command) string {
+	if cmd == nil {
+		return ""
+	}
+	if f := cmd.InheritedFlags().Lookup("output"); f != nil && f.Value != nil {
+		val := strings.TrimSpace(f.Value.String())
+		switch val {
+		case "text", "json", "yaml", "markdown":
+			return val
+		}
+	}
+	return ""
+}
+
+// Test-only: allow injecting a provider factory so tests can supply a mock
+var injectedProviderFactory func(providerType string, cfg core.ProviderConfig) (core.Provider, error)
+
+func SetInjectedProviderFactory(f func(string, core.ProviderConfig) (core.Provider, error)) {
+	injectedProviderFactory = f
 }
 
 // Completion functions
@@ -504,6 +584,17 @@ func validateProvider(providerName string, cfg *config.Config) error {
 		available := cfg.ListProviders()
 		return fmt.Errorf("provider %q not configured; available providers: %s",
 			providerName, strings.Join(available, ", "))
+	}
+	return nil
+}
+
+// validateChatFlagsRuntime validates chat flags for common errors at runtime.
+func validateChatFlagsRuntime(flags *ChatFlags) error {
+	if flags.Temperature < 0 || flags.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
+	}
+	if flags.MaxTokens < 0 {
+		return fmt.Errorf("max tokens must be positive")
 	}
 	return nil
 }

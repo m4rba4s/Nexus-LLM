@@ -1,103 +1,61 @@
-# Multi-stage build for GOLLM CLI
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-bookworm AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apt-get update && apt-get install -y git gcc libc-dev
 
-# Set working directory
-WORKDIR /src
+WORKDIR /app
 
-# Create non-root user for build
-RUN addgroup -g 1001 -S gollm && \
-    adduser -u 1001 -S gollm -G gollm
-
-# Copy go mod files first for better caching
+# Cache dependencies
 COPY go.mod go.sum ./
+RUN go mod download
 
-# Download dependencies
-RUN go mod download && go mod verify
-
-# Copy source code
+# Copy source
 COPY . .
 
-# Build arguments for version information
-ARG VERSION=dev
-ARG COMMIT=unknown
-ARG BUILD_TIME=unknown
+# Build binary with zero-trust optimizations
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -trimpath -o bin/nexus-llm ./cmd/gollm
 
-# Build the application
-RUN CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
-    go build \
-    -a \
-    -installsuffix cgo \
-    -ldflags="-w -s -X 'github.com/yourusername/gollm/internal/version.Version=${VERSION}' -X 'github.com/yourusername/gollm/internal/version.Commit=${COMMIT}' -X 'github.com/yourusername/gollm/internal/version.BuildTime=${BUILD_TIME}'" \
-    -o gollm \
-    ./cmd/gollm
+# Execution stage
+FROM debian:bookworm-slim
 
-# Verify the binary
-RUN ./gollm version
-
-# Runtime stage
-FROM alpine:3.18
-
-# Install runtime dependencies
-RUN apk --no-cache add \
+# Install CA certs, dependencies for Playwright headless mode
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
-    && update-ca-certificates
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    radare2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN addgroup -g 1001 -S gollm && \
-    adduser -u 1001 -S gollm -G gollm
+# Add non-root user for security (Drop Privileges)
+RUN useradd -m -s /bin/bash appuser
 
-# Create necessary directories
-RUN mkdir -p /home/gollm/.gollm && \
-    chown -R gollm:gollm /home/gollm
+WORKDIR /app
 
-# Copy the binary from builder stage
-COPY --from=builder --chown=gollm:gollm /src/gollm /usr/local/bin/gollm
+# Copy binary from builder
+COPY --from=builder /app/bin/nexus-llm .
 
-# Copy additional files
-COPY --chown=gollm:gollm README.md LICENSE /usr/share/doc/gollm/
+# Configure playwright cache location and permissions so appuser can install browser
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+RUN mkdir -p /home/appuser/.cache/ms-playwright && chown -R appuser:appuser /home/appuser/.cache /app
 
-# Set proper permissions
-RUN chmod 755 /usr/local/bin/gollm
+# eBPF notes: To enable the Ring-0 sandbox, run this container with:
+# --cap-add=CAP_SYS_ADMIN --cap-add=CAP_BPF
+USER appuser
 
-# Switch to non-root user
-USER gollm
-
-# Set working directory
-WORKDIR /home/gollm
-
-# Set environment variables
-ENV PATH="/usr/local/bin:${PATH}"
-ENV GOLLM_CONFIG_DIR="/home/gollm/.gollm"
-ENV GOLLM_LOG_LEVEL="info"
-
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD gollm version --short || exit 1
-
-# Metadata labels
-LABEL org.opencontainers.image.title="GOLLM" \
-      org.opencontainers.image.description="High-performance CLI for Large Language Models" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.source="https://github.com/yourusername/gollm" \
-      org.opencontainers.image.documentation="https://docs.gollm.dev" \
-      org.opencontainers.image.vendor="GOLLM Team" \
-      org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.created="${BUILD_TIME}" \
-      org.opencontainers.image.revision="${COMMIT}"
-
-# Default command
-ENTRYPOINT ["gollm"]
-CMD ["--help"]
-
-# Expose common ports (if running as server in future)
-# EXPOSE 8080
-
-# Volume for configuration and data
-VOLUME ["/home/gollm/.gollm"]
+# Run in Telegram Daemon mode by default for prod
+CMD ["./nexus-llm", "-mode=tg"]

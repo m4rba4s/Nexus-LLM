@@ -4,6 +4,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -17,8 +18,17 @@ import (
 
 	// Import providers to trigger their init() registration
 	_ "github.com/yourusername/gollm/internal/providers/anthropic"
+	_ "github.com/yourusername/gollm/internal/providers/deepseek"
+	_ "github.com/yourusername/gollm/internal/providers/gemini"
 	_ "github.com/yourusername/gollm/internal/providers/mock"
 	_ "github.com/yourusername/gollm/internal/providers/openai"
+	_ "github.com/yourusername/gollm/internal/providers/openrouter"
+)
+
+// Writers for models command (set per execution)
+var (
+	mdlOut io.Writer = os.Stdout
+	mdlErr io.Writer = os.Stderr
 )
 
 // ModelFlags contains flags specific to model commands.
@@ -61,6 +71,8 @@ Examples:
   # List models in JSON format
   gollm models list --output json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			mdlOut = cmd.OutOrStdout()
+			mdlErr = cmd.ErrOrStderr()
 			// Default to list command if no subcommand specified
 			return runModelsListCommand(flags)
 		},
@@ -121,6 +133,8 @@ Examples:
   # Output as JSON
   gollm models list --output json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			mdlOut = cmd.OutOrStdout()
+			mdlErr = cmd.ErrOrStderr()
 			return runModelsListCommand(flags)
 		},
 	}
@@ -145,6 +159,8 @@ Examples:
   gollm models info claude-3-sonnet --output json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			mdlOut = cmd.OutOrStdout()
+			mdlErr = cmd.ErrOrStderr()
 			return runModelsInfoCommand(args[0], flags)
 		},
 	}
@@ -155,8 +171,8 @@ func runModelsListCommand(flags *ModelFlags) error {
 	ctx, cancel := setupContextWithTimeout(30 * time.Second)
 	defer cancel()
 
-	// Load configuration
-	cfg, err := config.Load()
+	// Load configuration (or injected during tests)
+	cfg, err := getInjectedOrLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -168,7 +184,7 @@ func runModelsListCommand(flags *ModelFlags) error {
 	}
 
 	if len(providersToQuery) == 0 {
-		fmt.Println("No providers configured or available")
+		fmt.Fprintln(mdlOut, "No providers configured or available")
 		return nil
 	}
 
@@ -187,11 +203,11 @@ func runModelsListCommand(flags *ModelFlags) error {
 
 	// Display errors if any (but don't fail completely)
 	if len(errors) > 0 {
-		fmt.Fprintf(os.Stderr, "Warnings:\n")
+		fmt.Fprintf(mdlErr, "Warnings:\n")
 		for _, errMsg := range errors {
-			fmt.Fprintf(os.Stderr, "  • %s\n", errMsg)
+			fmt.Fprintf(mdlErr, "  • %s\n", errMsg)
 		}
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(mdlErr)
 	}
 
 	// Format and display results
@@ -204,7 +220,7 @@ func runModelsInfoCommand(modelID string, flags *ModelFlags) error {
 	defer cancel()
 
 	// Load configuration
-	cfg, err := config.Load()
+	cfg, err := getInjectedOrLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -341,7 +357,7 @@ func outputModelsText(allModels map[string][]core.Model, flags *ModelFlags) erro
 		totalModels += len(models)
 	}
 
-	fmt.Printf("Available Models (%d total)\n\n", totalModels)
+	fmt.Fprintf(mdlOut, "Available models: (%d total)\n\n", totalModels)
 
 	// Sort providers for consistent output
 	var providers []string
@@ -356,18 +372,18 @@ func outputModelsText(allModels map[string][]core.Model, flags *ModelFlags) erro
 			continue
 		}
 
-		fmt.Printf("Provider: %s (%d models)\n", strings.ToUpper(provider), len(models))
-		fmt.Printf(strings.Repeat("─", 50) + "\n")
+		fmt.Fprintf(mdlOut, "Provider: %s (%d models)\n", provider, len(models))
+		fmt.Fprint(mdlOut, strings.Repeat("─", 50)+"\n")
 
 		for _, model := range models {
-			fmt.Printf("  %s\n", model.ID)
+			fmt.Fprintf(mdlOut, "  %s\n", model.ID)
 
 			if flags.Detailed {
 				if model.Description != "" {
-					fmt.Printf("    Description: %s\n", model.Description)
+					fmt.Fprintf(mdlOut, "    Description: %s\n", model.Description)
 				}
 				if model.MaxTokens != nil {
-					fmt.Printf("    Max Tokens: %s\n", formatNumber(*model.MaxTokens))
+					fmt.Fprintf(mdlOut, "    Max Tokens: %s\n", formatNumber(*model.MaxTokens))
 				}
 
 				// Show capabilities
@@ -382,7 +398,7 @@ func outputModelsText(allModels map[string][]core.Model, flags *ModelFlags) erro
 					capabilities = append(capabilities, "vision")
 				}
 				if len(capabilities) > 0 {
-					fmt.Printf("    Capabilities: %s\n", strings.Join(capabilities, ", "))
+					fmt.Fprintf(mdlOut, "    Capabilities: %s\n", strings.Join(capabilities, ", "))
 				}
 			}
 
@@ -394,15 +410,15 @@ func outputModelsText(allModels map[string][]core.Model, flags *ModelFlags) erro
 					fmt.Printf("    Output: $%.4f/1K tokens", *model.OutputCostPer1K)
 				}
 				if model.InputCostPer1K != nil || model.OutputCostPer1K != nil {
-					fmt.Println()
+					fmt.Fprintln(mdlOut)
 				}
 			}
 
 			if flags.Detailed || flags.ShowPricing {
-				fmt.Println()
+				fmt.Fprintln(mdlOut)
 			}
 		}
-		fmt.Println()
+		fmt.Fprintln(mdlOut)
 	}
 
 	return nil
@@ -422,53 +438,53 @@ func formatModelInfo(model core.Model, provider string, flags *ModelFlags) error
 
 // outputModelText outputs model info in text format.
 func outputModelText(model core.Model, provider string) error {
-	fmt.Printf("Model Information\n")
-	fmt.Printf("=================\n\n")
+	fmt.Fprintf(mdlOut, "Model Information\n")
+	fmt.Fprintf(mdlOut, "=================\n\n")
 
-	fmt.Printf("ID: %s\n", model.ID)
-	fmt.Printf("Provider: %s\n", provider)
+	fmt.Fprintf(mdlOut, "Model: %s\n", model.ID)
+	fmt.Fprintf(mdlOut, "Provider: %s\n", provider)
 
 	if model.Description != "" {
-		fmt.Printf("Description: %s\n", model.Description)
+		fmt.Fprintf(mdlOut, "Description: %s\n", model.Description)
 	}
 
 	if model.MaxTokens != nil {
-		fmt.Printf("Max Tokens: %s\n", formatNumber(*model.MaxTokens))
+		fmt.Fprintf(mdlOut, "Max Tokens: %s\n", formatNumber(*model.MaxTokens))
 	}
 
 	if model.OwnedBy != "" {
-		fmt.Printf("Owned By: %s\n", model.OwnedBy)
+		fmt.Fprintf(mdlOut, "Owned By: %s\n", model.OwnedBy)
 	}
 
 	// Capabilities
-	fmt.Printf("\nCapabilities:\n")
-	fmt.Printf("  Streaming: %s\n", formatBool(model.SupportsStreaming))
-	fmt.Printf("  Functions: %s\n", formatBool(model.SupportsFunctions))
+	fmt.Fprintf(mdlOut, "\nCapabilities:\n")
+	fmt.Fprintf(mdlOut, "  Streaming: %s\n", formatBool(model.SupportsStreaming))
+	fmt.Fprintf(mdlOut, "  Functions: %s\n", formatBool(model.SupportsFunctions))
 	if model.SupportsVision {
-		fmt.Printf("  Vision: %s\n", formatBool(model.SupportsVision))
+		fmt.Fprintf(mdlOut, "  Vision: %s\n", formatBool(model.SupportsVision))
 	}
 
 	// Pricing
 	if model.InputCostPer1K != nil || model.OutputCostPer1K != nil {
-		fmt.Printf("\nPricing:\n")
+		fmt.Fprintf(mdlOut, "\nPricing:\n")
 		if model.InputCostPer1K != nil {
-			fmt.Printf("  Input: $%.4f per 1K tokens\n", *model.InputCostPer1K)
+			fmt.Fprintf(mdlOut, "  Input: $%.4f per 1K tokens\n", *model.InputCostPer1K)
 		}
 		if model.OutputCostPer1K != nil {
-			fmt.Printf("  Output: $%.4f per 1K tokens\n", *model.OutputCostPer1K)
+			fmt.Fprintf(mdlOut, "  Output: $%.4f per 1K tokens\n", *model.OutputCostPer1K)
 		}
 	}
 
 	// Tags
 	if len(model.Tags) > 0 {
-		fmt.Printf("\nTags: %s\n", strings.Join(model.Tags, ", "))
+		fmt.Fprintf(mdlOut, "\nTags: %s\n", strings.Join(model.Tags, ", "))
 	}
 
 	// Metadata
 	if len(model.Metadata) > 0 {
-		fmt.Printf("\nMetadata:\n")
+		fmt.Fprintf(mdlOut, "\nMetadata:\n")
 		for key, value := range model.Metadata {
-			fmt.Printf("  %s: %s\n", key, value)
+			fmt.Fprintf(mdlOut, "  %s: %s\n", key, value)
 		}
 	}
 

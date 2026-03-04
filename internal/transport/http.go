@@ -48,23 +48,23 @@ import (
 
 // HTTPClient provides a high-performance HTTP client with advanced features.
 type HTTPClient struct {
-	client       *http.Client
-	baseURL      string
-	config       HTTPConfig
-	interceptors []Interceptor
-	rateLimiter  *rate.Limiter
-	circuitBreaker *CircuitBreaker
-	metrics      *HTTPMetrics
-	bufferPool   *sync.Pool
-	mu           sync.RWMutex
+	client         *http.Client
+	baseURL        string
+	config         HTTPConfig
+	interceptors   []Interceptor
+	rateLimiter    *rate.Limiter
+	circuitBreaker *core.CircuitBreaker
+	metrics        *HTTPMetrics
+	bufferPool     *sync.Pool
+	mu             sync.RWMutex
 }
 
 // HTTPConfig configures the HTTP client behavior.
 type HTTPConfig struct {
 	// Base configuration
-	BaseURL     string        `json:"base_url" validate:"required,url"`
-	Timeout     time.Duration `json:"timeout" validate:"min=1s,max=300s"`
-	UserAgent   string        `json:"user_agent,omitempty"`
+	BaseURL   string        `json:"base_url" validate:"required,url"`
+	Timeout   time.Duration `json:"timeout" validate:"min=1s,max=300s"`
+	UserAgent string        `json:"user_agent,omitempty"`
 
 	// Connection pooling
 	MaxIdleConns        int           `json:"max_idle_conns" validate:"min=1,max=1000"`
@@ -79,56 +79,54 @@ type HTTPConfig struct {
 	CertificatePins     []string      `json:"certificate_pins,omitempty"`
 
 	// Retry configuration
-	MaxRetries    int           `json:"max_retries" validate:"min=0,max=10"`
-	RetryDelay    time.Duration `json:"retry_delay" validate:"min=100ms,max=60s"`
-	RetryBackoff  float64       `json:"retry_backoff" validate:"min=1,max=5"`
+	MaxRetries   int           `json:"max_retries" validate:"min=0,max=10"`
+	RetryDelay   time.Duration `json:"retry_delay" validate:"min=100ms,max=60s"`
+	RetryBackoff float64       `json:"retry_backoff" validate:"min=1,max=5"`
 
 	// Rate limiting
-	RateLimit       float64 `json:"rate_limit" validate:"min=0"`
-	RateBurst       int     `json:"rate_burst" validate:"min=1"`
+	RateLimit float64 `json:"rate_limit" validate:"min=0"`
+	RateBurst int     `json:"rate_burst" validate:"min=1"`
 
 	// Compression
 	EnableGzip   bool `json:"enable_gzip"`
 	EnableBrotli bool `json:"enable_brotli"`
 
 	// Circuit breaker
-	CircuitBreakerConfig CircuitBreakerConfig `json:"circuit_breaker"`
+	CircuitBreakerMaxFailures int           `json:"circuit_breaker_max_failures"`
+	CircuitBreakerTimeout     time.Duration `json:"circuit_breaker_timeout"`
 
 	// Headers
 	DefaultHeaders map[string]string `json:"default_headers,omitempty"`
 
 	// Advanced options
-	DisableKeepAlives     bool `json:"disable_keep_alives"`
-	DisableCompression    bool `json:"disable_compression"`
-	ForceAttemptHTTP2     bool `json:"force_attempt_http2"`
+	DisableKeepAlives      bool  `json:"disable_keep_alives"`
+	DisableCompression     bool  `json:"disable_compression"`
+	ForceAttemptHTTP2      bool  `json:"force_attempt_http2"`
 	MaxResponseHeaderBytes int64 `json:"max_response_header_bytes" validate:"min=4096,max=1048576"`
 }
 
 // DefaultHTTPConfig returns sensible defaults for HTTP client configuration.
 func DefaultHTTPConfig() HTTPConfig {
 	return HTTPConfig{
-		Timeout:                30 * time.Second,
-		UserAgent:              "gollm/1.0",
-		MaxIdleConns:           100,
-		MaxIdleConnsPerHost:    10,
-		MaxConnsPerHost:        50,
-		IdleConnTimeout:        90 * time.Second,
-		TLSHandshakeTimeout:    10 * time.Second,
-		TLSMinVersion:          tls.VersionTLS13,
-		MaxRetries:             3,
-		RetryDelay:             1 * time.Second,
-		RetryBackoff:           2.0,
-		RateLimit:              100.0, // requests per second
-		RateBurst:              10,
-		EnableGzip:             true,
-		EnableBrotli:           false, // Enable when widely supported
-		ForceAttemptHTTP2:      true,
-		MaxResponseHeaderBytes: 64 * 1024, // 64KB
-		CircuitBreakerConfig: CircuitBreakerConfig{
-			MaxFailures:    5,
-			ResetTimeout:   60 * time.Second,
-			Timeout:        30 * time.Second,
-		},
+		Timeout:                   30 * time.Second,
+		UserAgent:                 "gollm/1.0",
+		MaxIdleConns:              100,
+		MaxIdleConnsPerHost:       10,
+		MaxConnsPerHost:           50,
+		IdleConnTimeout:           90 * time.Second,
+		TLSHandshakeTimeout:       10 * time.Second,
+		TLSMinVersion:             tls.VersionTLS13,
+		MaxRetries:                3,
+		RetryDelay:                1 * time.Second,
+		RetryBackoff:              2.0,
+		RateLimit:                 100.0, // requests per second
+		RateBurst:                 10,
+		EnableGzip:                true,
+		EnableBrotli:              false, // Enable when widely supported
+		ForceAttemptHTTP2:         true,
+		MaxResponseHeaderBytes:    64 * 1024, // 64KB
+		CircuitBreakerMaxFailures: 5,
+		CircuitBreakerTimeout:     60 * time.Second,
 		DefaultHeaders: map[string]string{
 			"Accept":          "application/json",
 			"Accept-Encoding": "gzip, deflate",
@@ -157,14 +155,14 @@ func NewHTTPClient(config HTTPConfig) (*HTTPClient, error) {
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		TLSHandshakeTimeout:   config.TLSHandshakeTimeout,
-		IdleConnTimeout:       config.IdleConnTimeout,
-		MaxIdleConns:          config.MaxIdleConns,
-		MaxIdleConnsPerHost:   config.MaxIdleConnsPerHost,
-		MaxConnsPerHost:       config.MaxConnsPerHost,
-		DisableKeepAlives:     config.DisableKeepAlives,
-		DisableCompression:    config.DisableCompression,
-		ForceAttemptHTTP2:     config.ForceAttemptHTTP2,
+		TLSHandshakeTimeout:    config.TLSHandshakeTimeout,
+		IdleConnTimeout:        config.IdleConnTimeout,
+		MaxIdleConns:           config.MaxIdleConns,
+		MaxIdleConnsPerHost:    config.MaxIdleConnsPerHost,
+		MaxConnsPerHost:        config.MaxConnsPerHost,
+		DisableKeepAlives:      config.DisableKeepAlives,
+		DisableCompression:     config.DisableCompression,
+		ForceAttemptHTTP2:      config.ForceAttemptHTTP2,
 		MaxResponseHeaderBytes: config.MaxResponseHeaderBytes,
 		TLSClientConfig: &tls.Config{
 			MinVersion:         config.TLSMinVersion,
@@ -190,7 +188,7 @@ func NewHTTPClient(config HTTPConfig) (*HTTPClient, error) {
 	}
 
 	// Create circuit breaker
-	circuitBreaker := NewCircuitBreaker(config.CircuitBreakerConfig)
+	circuitBreaker := core.NewCircuitBreaker(config.CircuitBreakerMaxFailures, config.CircuitBreakerTimeout)
 
 	// Create buffer pool for request/response bodies
 	bufferPool := &sync.Pool{
@@ -379,7 +377,7 @@ func (c *HTTPClient) executeWithRetry(ctx context.Context, req *http.Request) (*
 		}
 
 		// Check circuit breaker
-		if c.circuitBreaker.IsOpen() {
+		if !c.circuitBreaker.Allow() {
 			return nil, fmt.Errorf("circuit breaker is open: %w", core.ErrProviderUnavail)
 		}
 
@@ -397,10 +395,10 @@ func (c *HTTPClient) executeWithRetry(ctx context.Context, req *http.Request) (*
 
 		// Update circuit breaker and decide what to do
 		if isSuccess {
-			c.circuitBreaker.RecordSuccess()
+			c.circuitBreaker.ReportSuccess()
 			return resp, nil
 		} else {
-			c.circuitBreaker.RecordFailure()
+			c.circuitBreaker.ReportFailure()
 			if err != nil {
 				lastErr = err
 			} else {
@@ -513,10 +511,10 @@ func (c *HTTPClient) shouldRetry(err error, resp *http.Response) bool {
 	if resp != nil {
 		switch resp.StatusCode {
 		case http.StatusTooManyRequests, // 429
-			 http.StatusInternalServerError, // 500
-			 http.StatusBadGateway,         // 502
-			 http.StatusServiceUnavailable, // 503
-			 http.StatusGatewayTimeout:     // 504
+			http.StatusInternalServerError, // 500
+			http.StatusBadGateway,          // 502
+			http.StatusServiceUnavailable,  // 503
+			http.StatusGatewayTimeout:      // 504
 			return true
 		}
 	}
@@ -579,12 +577,12 @@ func validateHTTPConfig(config HTTPConfig) error {
 type HTTPMetrics struct {
 	mu sync.RWMutex
 
-	TotalRequests    int64         `json:"total_requests"`
-	SuccessRequests  int64         `json:"success_requests"`
-	FailedRequests   int64         `json:"failed_requests"`
-	TotalTime        time.Duration `json:"total_time"`
-	MinResponseTime  time.Duration `json:"min_response_time"`
-	MaxResponseTime  time.Duration `json:"max_response_time"`
+	TotalRequests   int64         `json:"total_requests"`
+	SuccessRequests int64         `json:"success_requests"`
+	FailedRequests  int64         `json:"failed_requests"`
+	TotalTime       time.Duration `json:"total_time"`
+	MinResponseTime time.Duration `json:"min_response_time"`
+	MaxResponseTime time.Duration `json:"max_response_time"`
 
 	LastRequestTime time.Time `json:"last_request_time"`
 }

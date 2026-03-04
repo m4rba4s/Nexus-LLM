@@ -1,342 +1,45 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║                     GOLLM CLI - .gitignore                   ║
-# ║             🐉 NEXUS RED HYDRA SECURITY PROTOCOL 🐉          ║
-# ╚══════════════════════════════════════════════════════════════╝
+# Binaries
+bin/
+*.exe
+*.out
 
-# ==============================================================================
-# 🚨 CRITICAL SECURITY - NEVER COMMIT THESE FILES
-# ==============================================================================
+# Go
+vendor/
+*.test
 
-# Configuration files with API keys
-config.yaml
-config.yml
-config.json
-config.toml
+# Environment
 .env
 .env.local
 .env.production
-.env.staging
-.env.development
 
-# API keys and secrets
-*.key
-*.pem
-*.crt
-*.cert
-*.p12
-*.pfx
-api_keys/
-secrets/
-credentials/
-
-# Session and temporary auth data
-.gollm/
-.session/
-*.session
-auth_token*
-refresh_token*
-
-# ==============================================================================
-# 🛠️ GO BUILD ARTIFACTS
-# ==============================================================================
-
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-gollm
-gollm.exe
-gollm_*
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool
-*.out
-*.cov
-coverage.html
-coverage.xml
-coverage.txt
-*_coverage.out
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# Build directories
-bin/
-build/
-dist/
-releases/
-
-# ==============================================================================
-# 🧪 TESTING AND DEBUGGING
-# ==============================================================================
-
-# Test results and benchmarks
-test_results/
-benchmark_results/
-*.bench
-*.prof
-*.trace
-*.log
-
-# Temporary test files
-*_test_output*
-test_artifacts/
-integration_test_logs/
-legacy_tests/
-
-# Debug files
-debug
-debug.test
-*.debug
-
-# Race condition detection
-*.race
-
-# ==============================================================================
-# 💻 IDE AND EDITOR FILES
-# ==============================================================================
-
-# VSCode
-.vscode/
-*.code-workspace
-
-# JetBrains IDEs (GoLand, IntelliJ, etc.)
+# IDE
 .idea/
-*.iml
-*.ipr
-*.iws
-
-# Vim
+.vscode/
 *.swp
 *.swo
 *~
-.vim/
-.vimrc.local
 
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Atom
-.atom/
-
-# ==============================================================================
-# 🖥️ OPERATING SYSTEM FILES
-# ==============================================================================
-
-# macOS
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon?
-._*
-.Spotlight-V100
-.Trashes
-.com.apple.timemachine.donotpresent
-
-# Windows
 Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msm
-*.msp
 
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
+# Build artifacts
+*.o
+!internal/sandbox/ebpf/*.o
+/tmp/
 
-# ==============================================================================
-# 📦 PACKAGE MANAGERS AND DEPENDENCIES
-# ==============================================================================
-
-# Node.js (if used for tooling)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-
-# Python (if used for tooling)
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.Python
-venv/
-env/
-
-# ==============================================================================
-# 🔧 DEVELOPMENT TOOLS
-# ==============================================================================
-
-# Air (live reloading)
-tmp/
-.air.toml
-
-# Delve debugger
-__debug_bin
-
-# GoReleaser
-.goreleaser/
-
-# Docker
-.dockerignore.bak
-docker-compose.override.yml
-
-# Makefile outputs
-*.make
-make.log
-
-# ==============================================================================
-# 📊 ANALYTICS AND MONITORING
-# ==============================================================================
-
-# Performance profiling
-*.pprof
-cpu.prof
-mem.prof
-profile.prof
-
-# Monitoring and metrics
-metrics/
-monitoring/
-*.metrics
-
-# ==============================================================================
-# 📝 DOCUMENTATION AND LOGS
-# ==============================================================================
-
-# Generated documentation
-docs/build/
-site/
-
-# Log files
+# Logs
 *.log
-logs/
-log/
 
-# Session logs from NEXUS scanner
-SESSION_LOGS/
-nexus_status_*.log
+# Keys (gitleaks enforced)
+*.pem
+*.key
+<<<<<<< HEAD
+<<<<<<< HEAD
 
-# ==============================================================================
-# 🎯 PROJECT SPECIFIC
-# ==============================================================================
-
-# Demo and example outputs
-demo_output/
-examples/output/
-
-# Temporary test providers
-test_providers/
-mock_responses/
-
-# Provider-specific cache
-.provider_cache/
-.model_cache/
-
-# CLI configuration cache
-.cli_cache/
-.command_history
-
-# Performance benchmarking results
-benchmarks/results/
-performance_logs/
-
-# ==============================================================================
-# 🚀 DEPLOYMENT AND DISTRIBUTION
-# ==============================================================================
-
-# Release artifacts
-*.tar.gz
-*.zip
-*.deb
-*.rpm
-*.pkg
-*.dmg
-
-# Deployment configs
-deploy/
-deployment/
-k8s/secrets/
-docker/secrets/
-
-# CI/CD artifacts
-.github/secrets/
-.gitlab-ci-secrets/
-.circleci/secrets/
-
-# ==============================================================================
-# 🔍 MISCELLANEOUS
-# ==============================================================================
-
-# Backup files
-*.bak
-*.backup
-*.old
-
-# Temporary files
-*.tmp
-*.temp
-*~
-.#*
-
-# Lock files
-*.lock
-
-# PID files
-*.pid
-
-# Core dumps
-core.*
-
-# Memory dumps
-*.dmp
-
-# ==============================================================================
-# ✅ FORCE INCLUDE (OVERRIDE IGNORES)
-# ==============================================================================
-
-# Force include important example configs (without secrets)
-!config.example.yaml
-!config.example.yml
-!config.example.json
-!.env.example
-
-# Force include example provider configs
-!examples/config/
-!docs/examples/
-
-# Force include CI/CD configuration files (public parts)
-!.github/workflows/
-!.gitlab-ci.yml
-!.circleci/config.yml
-
-# ==============================================================================
-# 🐉 NEXUS RED HYDRA - SECURITY PROTOCOL COMPLETE
-# ==============================================================================
+.modcache/
+node_modules/
+=======
+>>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)
+=======
+>>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)

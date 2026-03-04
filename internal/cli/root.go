@@ -30,19 +30,20 @@
 package cli
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
+    "context"
+    "fmt"
+    "os"
+    "path/filepath"
+    "strings"
+    "time"
 
-	"github.com/spf13/cobra"
+    "github.com/spf13/cobra"
 
-	"github.com/yourusername/gollm/internal/cli/commands"
-	"github.com/yourusername/gollm/internal/config"
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/version"
+    "github.com/yourusername/gollm/internal/cli/commands"
+    "github.com/yourusername/gollm/internal/config"
+    "github.com/yourusername/gollm/internal/core"
+    "github.com/yourusername/gollm/internal/version"
+    branding "github.com/yourusername/gollm/internal/branding"
 )
 
 // BuildInfo contains information about the build.
@@ -54,26 +55,26 @@ type BuildInfo struct {
 
 // GlobalFlags contains global CLI flags that are available to all commands.
 type GlobalFlags struct {
-	ConfigFile    string
-	LogLevel      string
-	OutputFormat  string
-	NoColor       bool
-	Quiet         bool
-	Verbose       bool
-	Provider      string
-	Model         string
-	Temperature   float64
-	MaxTokens     int
-	Timeout       time.Duration
-	Debug         bool
+	ConfigFile   string
+	LogLevel     string
+	OutputFormat string
+	NoColor      bool
+	Quiet        bool
+	Verbose      bool
+	Provider     string
+	Model        string
+	Temperature  float64
+	MaxTokens    int
+	Timeout      time.Duration
+	Debug        bool
 }
 
 // RootContext contains shared context for all CLI commands.
 type RootContext struct {
-	Config       *config.Config
-	BuildInfo    BuildInfo
-	GlobalFlags  *GlobalFlags
-	Registry     *core.ProviderRegistry
+	Config      *config.Config
+	BuildInfo   BuildInfo
+	GlobalFlags *GlobalFlags
+	Registry    *core.ProviderRegistry
 }
 
 var (
@@ -89,8 +90,11 @@ func NewRootCommand(buildInfo BuildInfo) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:   "gollm",
 		Short: "High-performance CLI for Large Language Models",
-		Long: `GOLLM is a blazing-fast, cross-platform command-line interface for
-interacting with Large Language Models (LLMs) from various providers.
+        Long: branding.GetLogo(branding.LogoOptions{
+            ShowTagline: true,
+            Colored:     true,
+            Compact:     false,
+        }) + `
 
 Built with performance and reliability in mind, GOLLM provides:
 • Lightning-fast startup (sub-100ms)
@@ -110,7 +114,7 @@ Examples:
 
 For more information, visit: https://docs.gollm.dev`,
 		SilenceUsage:  true,
-		SilenceErrors: true,
+		SilenceErrors: false,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Skip initialization for commands that don't need configuration
 			if shouldSkipInitialization(cmd) {
@@ -119,10 +123,11 @@ For more information, visit: https://docs.gollm.dev`,
 			return initializeRootContext(cmd, buildInfo)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// If no subcommand is provided, show help
-			return cmd.Help()
-		},
-	}
+            // If no subcommand is provided, show welcome banner and help
+            branding.WelcomeBanner(buildInfo.Version)
+            return cmd.Help()
+        },
+    }
 
 	// Add global flags
 	addGlobalFlags(rootCmd)
@@ -150,6 +155,17 @@ func addSubcommands(rootCmd *cobra.Command) error {
 	rootCmd.AddCommand(commands.NewCompleteCommand())
 	rootCmd.AddCommand(commands.NewInteractiveCommand())
 	rootCmd.AddCommand(commands.NewEnhancedInteractiveCommand())
+	rootCmd.AddCommand(commands.NewTUICommand())
+	rootCmd.AddCommand(commands.NewAdvancedCommand())
+	rootCmd.AddCommand(commands.NewUltimateCommand())
+	rootCmd.AddCommand(commands.NewUltimateWorkingCommand())  // WORKING VERSION!
+	rootCmd.AddCommand(commands.NewUltimateRealCommand())     // REAL API VERSION!
+	rootCmd.AddCommand(commands.NewUltimateEnhancedCommand()) // ENHANCED WITH CHAT LOOP & AUTOMATION!
+	rootCmd.AddCommand(commands.NewChatLoopFixCommand())      // FIXED CONTINUOUS CHAT!
+	rootCmd.AddCommand(commands.NewAIOperatorCommand())       // AI AS SYSTEM OPERATOR!
+	rootCmd.AddCommand(commands.NewOperatorCommand())         // PC-Operator flows (safe)
+	rootCmd.AddCommand(commands.NewCoderCommand())            // Coder workflow (Go-first)
+	rootCmd.AddCommand(commands.NewMenuCommand())             // Minimal menu (Operator + Coder)
 
 	// Configuration and management
 	rootCmd.AddCommand(commands.NewConfigCommand())
@@ -207,7 +223,19 @@ func addGlobalFlags(cmd *cobra.Command) {
 // shouldSkipInitialization checks if the command should skip root context initialization.
 func shouldSkipInitialization(cmd *cobra.Command) bool {
 	// Commands that don't need configuration
-	skipCommands := []string{"version", "help", "completion"}
+	// These are interactive/demo modes or commands that manage themselves without global config.
+    skipCommands := []string{
+        "version",
+        "help",
+        "completion",
+        "ultimate-work",
+        "ultimate-real",
+        "chat-loop",
+        "ai-operator",
+        "menu",
+        "operator",
+        "coder",
+    }
 
 	cmdName := cmd.Name()
 	for _, skip := range skipCommands {

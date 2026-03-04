@@ -11,9 +11,10 @@
 // - Streaming response visualization with progress indicators
 //
 // Usage:
-//   gollm interactive --enhanced
-//   gollm interactive --profile coding --enhanced
-//   gollm interactive --enhanced --history-file ~/.gollm/session.history
+//
+//	gollm interactive --enhanced
+//	gollm interactive --profile coding --enhanced
+//	gollm interactive --enhanced --history-file ~/.gollm/session.history
 package commands
 
 import (
@@ -26,6 +27,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/fatih/color"
 	"github.com/yourusername/gollm/internal/config"
 	"github.com/yourusername/gollm/internal/core"
 	"github.com/yourusername/gollm/internal/display"
@@ -60,7 +62,7 @@ type EnhancedInteractiveFlags struct {
 	ShowLatency    bool
 
 	// Advanced options
-	MultilineMode   bool
+	MultilineMode  bool
 	VimMode        bool
 	EmacsMode      bool
 	PreviewMode    bool
@@ -100,15 +102,15 @@ type EnhancedSession struct {
 
 // SessionEntry represents a single entry in the session history.
 type SessionEntry struct {
-	Timestamp    time.Time         `json:"timestamp"`
-	Type         string           `json:"type"` // "user", "assistant", "system", "command"
-	Content      string           `json:"content"`
-	Provider     string           `json:"provider,omitempty"`
-	Model        string           `json:"model,omitempty"`
-	TokensUsed   int              `json:"tokens_used,omitempty"`
-	Latency      time.Duration    `json:"latency,omitempty"`
-	Cost         float64          `json:"cost,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Type       string                 `json:"type"` // "user", "assistant", "system", "command"
+	Content    string                 `json:"content"`
+	Provider   string                 `json:"provider,omitempty"`
+	Model      string                 `json:"model,omitempty"`
+	TokensUsed int                    `json:"tokens_used,omitempty"`
+	Latency    time.Duration          `json:"latency,omitempty"`
+	Cost       float64                `json:"cost,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // CommandExecutor handles command execution and completion.
@@ -127,12 +129,12 @@ type CommandHandler interface {
 
 // Completer provides intelligent completion for various contexts.
 type Completer struct {
-	session         *EnhancedSession
-	providerNames   []string
-	modelNames      []string
-	profileNames    []string
-	commandNames    []string
-	parameterNames  []string
+	session        *EnhancedSession
+	providerNames  []string
+	modelNames     []string
+	profileNames   []string
+	commandNames   []string
+	parameterNames []string
 }
 
 // NewEnhancedInteractiveCommand creates the enhanced interactive command.
@@ -644,8 +646,8 @@ func (m *mockEnhancedProvider) Name() string {
 func (m *mockEnhancedProvider) GetModels(ctx context.Context) ([]core.Model, error) {
 	return []core.Model{
 		{
-			ID:          m.model,
-			Provider:    m.name,
+			ID:       m.model,
+			Provider: m.name,
 		},
 	}, nil
 }
@@ -760,7 +762,11 @@ func (s *EnhancedSession) createPrompt() {
 }
 
 func (s *EnhancedSession) ShowWelcome() {
-	s.renderer.Info("🚀 GOLLM Enhanced Interactive Mode")
+	// Display GOLLM ASCII logo
+	s.displayInteractiveLogo()
+	fmt.Println()
+
+	s.renderer.Info("🎮 Enhanced Interactive Mode")
 	s.renderer.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	if s.profile != nil {
@@ -776,6 +782,58 @@ func (s *EnhancedSession) ShowWelcome() {
 	s.renderer.Info("💡 Type '/help' for commands or start chatting!")
 	s.renderer.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println()
+}
+
+// displayInteractiveLogo displays the compact GOLLM logo for interactive mode
+func (s *EnhancedSession) displayInteractiveLogo() {
+	compactLogo := `  ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░
+  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░
+  ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░
+  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░  ░▒▓█▓▒░
+  ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░ ░▒▓██▓▒░`
+
+	// Apply colors if supported
+	if s.shouldUseColors() {
+		lines := strings.Split(compactLogo, "\n")
+		colors := []*color.Color{
+			color.New(color.FgHiCyan),
+			color.New(color.FgHiBlue),
+			color.New(color.FgBlue),
+			color.New(color.FgHiMagenta),
+			color.New(color.FgHiRed),
+		}
+
+		for i, line := range lines {
+			if i < len(colors) {
+				fmt.Println(colors[i].Sprint(line))
+			} else {
+				fmt.Println(line)
+			}
+		}
+
+		// Add tagline
+		tagline := "🎮 Interactive Mode • Type /help for commands • /quit to exit"
+		fmt.Println(color.New(color.FgHiWhite, color.Bold).Sprint("\n             " + tagline))
+	} else {
+		fmt.Println(compactLogo)
+		fmt.Println("\n             🎮 Interactive Mode • Type /help for commands • /quit to exit")
+	}
+}
+
+// shouldUseColors determines if colors should be used in interactive mode
+func (s *EnhancedSession) shouldUseColors() bool {
+	if s.flags.NoColors {
+		return false
+	}
+	if s.flags.Colors {
+		return true
+	}
+	// Check for NO_COLOR environment variable
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	// Use fatih/color's built-in detection
+	return !color.NoColor
 }
 
 func (s *EnhancedSession) addToHistory(entry SessionEntry) {

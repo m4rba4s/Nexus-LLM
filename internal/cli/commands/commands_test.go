@@ -523,6 +523,8 @@ func createTestConfig(providerType string) *config.Config {
 
 // setupMockContext sets up a mock context for commands.
 func setupMockContext(cfg *config.Config) {
+	// Inject in-memory config so commands use it instead of loading from disk
+	SetInjectedConfig(cfg)
 	// This would normally be set by root command initialization
 	// For testing, we'll create a minimal mock setup
 
@@ -537,11 +539,13 @@ func setupMockContext(cfg *config.Config) {
 	mockProvider.SetGlobalResponse("Hello there!")
 	mockProvider.SetResponse("test-model-1", "Go is a programming language developed by Google")
 	mockProvider.SetResponse("test-model-2", "Go is a programming language developed by Google")
+	mockProvider.SetResponse("test-model", "Go is a programming language developed by Google")
+	// Ensure streaming test outputs a known prefix
+	mockProvider.SetStreamChunks("mock-gpt-3.5-turbo", []string{"Once upon a time ", "there was a ", "blazing fast Go CLI named GOLLM..."})
 
-	// Create provider registry and register mock provider factory
-	registry := core.NewProviderRegistry()
-	registry.RegisterFactory("mock", func(config core.ProviderConfig) (core.Provider, error) {
-		return mock.New(mock.DefaultConfig()), nil
+	// Inject provider factory so commands use our configured mock
+	SetInjectedProviderFactory(func(_ string, _ core.ProviderConfig) (core.Provider, error) {
+		return mockProvider, nil
 	})
 
 	// Set up mock context (this would normally be done by CLI root)

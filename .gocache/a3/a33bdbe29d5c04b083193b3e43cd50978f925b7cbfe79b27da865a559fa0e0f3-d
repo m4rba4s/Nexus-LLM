@@ -1,0 +1,3 @@
+./display.go
+./formatter.go
+./syntax.go

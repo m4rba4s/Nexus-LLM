@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -18,13 +17,13 @@ import (
 
 // SyntaxHighlighter provides intelligent code highlighting capabilities
 type SyntaxHighlighter struct {
-	theme          string
-	formatter      chroma.Formatter
-	colorEnabled   bool
-	tabWidth       int
-	lineNumbers    bool
-	autoDetect     bool
-	fallbackLexer  chroma.Lexer
+	theme         string
+	formatter     chroma.Formatter
+	colorEnabled  bool
+	tabWidth      int
+	lineNumbers   bool
+	autoDetect    bool
+	fallbackLexer chroma.Lexer
 }
 
 // Theme represents a color scheme for syntax highlighting
@@ -365,7 +364,7 @@ func (sh *SyntaxHighlighter) IsCodeBlock(content string) bool {
 
 	// Check for common code block indicators
 	codeIndicators := []string{
-		"```", // Markdown code blocks
+		"```",                                  // Markdown code blocks
 		"func ", "function ", "def ", "class ", // Function definitions
 		"import ", "from ", "package ", "use ", // Import statements
 		"public class", "private class", // Java classes

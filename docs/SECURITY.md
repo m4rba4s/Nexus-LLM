@@ -47,7 +47,7 @@ GOLLM implements enterprise-grade security features to protect sensitive data, p
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    GOLLM Security Stack                     │
+│                    Nexus-LLM Security Stack                     │
 ├─────────────────────────────────────────────────────────────┤
 │ CLI Interface                                               │
 │ ├─ Input Validation & Sanitization                         │

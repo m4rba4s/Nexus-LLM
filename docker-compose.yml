@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  nexus-db:
+    image: pgvector/pgvector:pg15
+    container_name: nexus_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nexus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexus_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-nexus_memory}
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexus_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus_memory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nexus-core:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus_core
+    depends_on:
+      nexus-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD:-nexus_secure_pass}@nexus-db:5432/${POSTGRES_DB:-nexus_memory}?sslmode=disable
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ROOT_TELEGRAM_ID=${ROOT_TELEGRAM_ID}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: always
+
+volumes:
+  nexus_pgdata:

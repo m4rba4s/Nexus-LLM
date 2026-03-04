@@ -9,9 +9,10 @@
 // - Resource usage
 //
 // Usage:
-//   gollm benchmark --provider openai --model gpt-4 --iterations 50
-//   gollm benchmark --all --output json
-//   gollm benchmark --scenario coding --duration 5m
+//
+//	gollm benchmark --provider openai --model gpt-4 --iterations 50
+//	gollm benchmark --all --output json
+//	gollm benchmark --scenario coding --duration 5m
 package commands
 
 import (
@@ -33,67 +34,67 @@ import (
 
 // BenchmarkFlags holds all benchmark command configuration.
 type BenchmarkFlags struct {
-	Provider      string
-	Model         string
-	All           bool
-	Iterations    int
-	Duration      time.Duration
-	Concurrency   int
-	Scenario      string
-	OutputFormat  string
-	Quiet         bool
-	Verbose       bool
-	SaveResults   bool
-	ResultsFile   string
-	WarmupRuns    int
-	Timeout       time.Duration
-	StopOnError   bool
+	Provider       string
+	Model          string
+	All            bool
+	Iterations     int
+	Duration       time.Duration
+	Concurrency    int
+	Scenario       string
+	OutputFormat   string
+	Quiet          bool
+	Verbose        bool
+	SaveResults    bool
+	ResultsFile    string
+	WarmupRuns     int
+	Timeout        time.Duration
+	StopOnError    bool
 	MinSuccessRate float64
 }
 
 // BenchmarkScenario defines a test scenario with specific parameters.
 type BenchmarkScenario struct {
-	Name        string
-	Description string
-	Prompt      string
-	MaxTokens   int
-	Temperature float64
+	Name           string
+	Description    string
+	Prompt         string
+	MaxTokens      int
+	Temperature    float64
 	ExpectedTokens int
 }
 
 // BenchmarkResult contains comprehensive benchmark results.
 type BenchmarkResult struct {
-	Provider           string            `json:"provider"`
-	Model             string            `json:"model"`
-	Scenario          string            `json:"scenario"`
-	TotalRequests     int               `json:"total_requests"`
-	SuccessfulRequests int              `json:"successful_requests"`
-	FailedRequests    int               `json:"failed_requests"`
-	SuccessRate       float64           `json:"success_rate"`
-	AvgLatency        time.Duration     `json:"avg_latency"`
-	MinLatency        time.Duration     `json:"min_latency"`
-	MaxLatency        time.Duration     `json:"max_latency"`
-	P50Latency        time.Duration     `json:"p50_latency"`
-	P95Latency        time.Duration     `json:"p95_latency"`
-	P99Latency        time.Duration     `json:"p99_latency"`
-	TotalTokens       int               `json:"total_tokens"`
-	TokensPerSecond   float64           `json:"tokens_per_second"`
-	RequestsPerSecond float64           `json:"requests_per_second"`
-	TotalDuration     time.Duration     `json:"total_duration"`
-	Errors            map[string]int    `json:"errors"`
-	ResourceUsage     ResourceUsage     `json:"resource_usage"`
-	StartTime         time.Time         `json:"start_time"`
-	EndTime          time.Time         `json:"end_time"`
+	Provider           string         `json:"provider"`
+	Model              string         `json:"model"`
+	Scenario           string         `json:"scenario"`
+	TotalRequests      int            `json:"total_requests"`
+	SuccessfulRequests int            `json:"successful_requests"`
+	FailedRequests     int            `json:"failed_requests"`
+	SuccessRate        float64        `json:"success_rate"`
+	AvgLatency         time.Duration  `json:"avg_latency"`
+	MinLatency         time.Duration  `json:"min_latency"`
+	MaxLatency         time.Duration  `json:"max_latency"`
+	P50Latency         time.Duration  `json:"p50_latency"`
+	P95Latency         time.Duration  `json:"p95_latency"`
+	P99Latency         time.Duration  `json:"p99_latency"`
+	TotalTokens        int            `json:"total_tokens"`
+	TokensPerSecond    float64        `json:"tokens_per_second"`
+	RequestsPerSecond  float64        `json:"requests_per_second"`
+	TotalDuration      time.Duration  `json:"total_duration"`
+	Errors             map[string]int `json:"errors"`
+	ResourceUsage      ResourceUsage  `json:"resource_usage"`
+	StartTime          time.Time      `json:"start_time"`
+	EndTime            time.Time      `json:"end_time"`
 }
 
 // ResourceUsage tracks system resource consumption during benchmarking.
 type ResourceUsage struct {
-	InitialMemory   uint64  `json:"initial_memory"`
-	PeakMemory      uint64  `json:"peak_memory"`
-	FinalMemory     uint64  `json:"final_memory"`
-	MemoryGrowth    uint64  `json:"memory_growth"`
-	CPUPercent      float64 `json:"cpu_percent"`
-	GoroutineCount  int     `json:"goroutine_count"`
+	InitialMemory  uint64  `json:"initial_memory"`
+	PeakMemory     uint64  `json:"peak_memory"`
+	FinalMemory    uint64  `json:"final_memory"`
+	MemoryGrowth   uint64  `json:"memory_growth"`
+	CPUPercent     float64 `json:"cpu_percent"`
+	GoroutineCount int     `json:"goroutine_count"`
 }
 
 // RequestResult holds the result of a single benchmark request.
@@ -224,11 +225,11 @@ func runBenchmarkCommand(ctx context.Context, flags *BenchmarkFlags) error {
 		results = append(results, result)
 		renderer.BenchmarkResult(display.BenchmarkResult{
 			Provider:        result.Provider,
-			Model:          result.Model,
-			AvgLatency:     result.AvgLatency,
+			Model:           result.Model,
+			AvgLatency:      result.AvgLatency,
 			TokensPerSecond: result.TokensPerSecond,
-			SuccessRate:    result.SuccessRate,
-			TotalRequests:  result.TotalRequests,
+			SuccessRate:     result.SuccessRate,
+			TotalRequests:   result.TotalRequests,
 		})
 	}
 
@@ -306,35 +307,35 @@ func getBenchmarkTargets(cfg *config.Config, flags *BenchmarkFlags) ([]Benchmark
 func getBenchmarkScenario(name string) (*BenchmarkScenario, error) {
 	scenarios := map[string]*BenchmarkScenario{
 		"default": {
-			Name:        "default",
-			Description: "General purpose benchmark with balanced parameters",
-			Prompt:      "Explain the concept of machine learning in simple terms.",
-			MaxTokens:   500,
-			Temperature: 0.7,
+			Name:           "default",
+			Description:    "General purpose benchmark with balanced parameters",
+			Prompt:         "Explain the concept of machine learning in simple terms.",
+			MaxTokens:      500,
+			Temperature:    0.7,
 			ExpectedTokens: 300,
 		},
 		"coding": {
-			Name:        "coding",
-			Description: "Programming and technical tasks benchmark",
-			Prompt:      "Write a Python function to calculate the fibonacci sequence using dynamic programming. Include error handling and documentation.",
-			MaxTokens:   1000,
-			Temperature: 0.2,
+			Name:           "coding",
+			Description:    "Programming and technical tasks benchmark",
+			Prompt:         "Write a Python function to calculate the fibonacci sequence using dynamic programming. Include error handling and documentation.",
+			MaxTokens:      1000,
+			Temperature:    0.2,
 			ExpectedTokens: 600,
 		},
 		"creative": {
-			Name:        "creative",
-			Description: "Creative writing and imaginative tasks benchmark",
-			Prompt:      "Write a short story about a time traveler who accidentally changes a small detail in the past and discovers unexpected consequences.",
-			MaxTokens:   800,
-			Temperature: 0.9,
+			Name:           "creative",
+			Description:    "Creative writing and imaginative tasks benchmark",
+			Prompt:         "Write a short story about a time traveler who accidentally changes a small detail in the past and discovers unexpected consequences.",
+			MaxTokens:      800,
+			Temperature:    0.9,
 			ExpectedTokens: 500,
 		},
 		"analysis": {
-			Name:        "analysis",
-			Description: "Analytical and reasoning tasks benchmark",
-			Prompt:      "Analyze the potential economic and social impacts of widespread adoption of autonomous vehicles. Consider both benefits and challenges.",
-			MaxTokens:   1200,
-			Temperature: 0.3,
+			Name:           "analysis",
+			Description:    "Analytical and reasoning tasks benchmark",
+			Prompt:         "Analyze the potential economic and social impacts of widespread adoption of autonomous vehicles. Consider both benefits and challenges.",
+			MaxTokens:      1200,
+			Temperature:    0.3,
 			ExpectedTokens: 800,
 		},
 	}
@@ -579,8 +580,8 @@ func (m *mockProvider) Name() string {
 func (m *mockProvider) GetModels(ctx context.Context) ([]core.Model, error) {
 	return []core.Model{
 		{
-			ID:          m.model,
-			Provider:    m.name,
+			ID:       m.model,
+			Provider: m.name,
 		},
 	}, nil
 }
@@ -674,11 +675,11 @@ func displayBenchmarkSummary(results []*BenchmarkResult, renderer *display.Rende
 	for _, result := range results {
 		renderer.BenchmarkResult(display.BenchmarkResult{
 			Provider:        result.Provider,
-			Model:          result.Model,
-			AvgLatency:     result.AvgLatency,
+			Model:           result.Model,
+			AvgLatency:      result.AvgLatency,
 			TokensPerSecond: result.TokensPerSecond,
-			SuccessRate:    result.SuccessRate,
-			TotalRequests:  result.TotalRequests,
+			SuccessRate:     result.SuccessRate,
+			TotalRequests:   result.TotalRequests,
 		})
 	}
 

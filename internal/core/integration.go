@@ -17,42 +17,9 @@ package core
 import (
 	"fmt"
 	"strings"
-	"sync"
 )
 
-var (
-	// Global registry for provider factories
-	globalFactories = make(map[string]ProviderFactory)
-	factoriesMu     sync.RWMutex
-)
-
-// RegisterProviderFactory registers a factory function for a provider type.
-// This allows dynamic creation of providers from configuration.
-func RegisterProviderFactory(providerType string, factory ProviderFactory) error {
-	if providerType == "" {
-		return &ValidationError{
-			Field:   "providerType",
-			Value:   providerType,
-			Rule:    "required",
-			Message: "provider type cannot be empty",
-		}
-	}
-
-	if factory == nil {
-		return &ValidationError{
-			Field:   "factory",
-			Value:   factory,
-			Rule:    "required",
-			Message: "factory function cannot be nil",
-		}
-	}
-
-	factoriesMu.Lock()
-	defer factoriesMu.Unlock()
-
-	globalFactories[strings.ToLower(providerType)] = factory
-	return nil
-}
+// Using the global provider factories from global_registry.go
 
 // CreateProviderFromConfig creates a provider instance from configuration
 // using registered factories.
@@ -63,6 +30,9 @@ func CreateProviderFromConfig(providerType string, config ProviderConfig) (Provi
 
 	factoriesMu.RLock()
 	factory, exists := globalFactories[strings.ToLower(providerType)]
+	if !exists {
+		factory, exists = stableFactories[strings.ToLower(providerType)]
+	}
 	factoriesMu.RUnlock()
 
 	if !exists {
@@ -125,8 +95,17 @@ func GetProviderTypeInfo() map[string]ProviderTypeInfo {
 	// their own metadata during registration
 	for providerType := range globalFactories {
 		info[providerType] = ProviderTypeInfo{
-			Type: providerType,
+			Type:     providerType,
 			Features: []string{"completion"}, // Basic features all providers support
+		}
+	}
+	// Also include stable factories to avoid test interference
+	for providerType := range stableFactories {
+		if _, exists := info[providerType]; !exists {
+			info[providerType] = ProviderTypeInfo{
+				Type:     providerType,
+				Features: []string{"completion"},
+			}
 		}
 	}
 
@@ -272,7 +251,7 @@ func GetRecommendedConfig(providerType string) (ProviderConfig, error) {
 		config.BaseURL = "https://api.openai.com/v1"
 		config.Extra = map[string]interface{}{
 			"enable_function_calling": true,
-			"enable_vision":          true,
+			"enable_vision":           true,
 		}
 	case "anthropic":
 		config.BaseURL = "https://api.anthropic.com"

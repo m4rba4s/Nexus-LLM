@@ -63,12 +63,12 @@ func TestProvider_Name(t *testing.T) {
 
 func TestProvider_CreateCompletion(t *testing.T) {
 	tests := []struct {
-		name           string
-		setup          func(*Provider)
-		request        *core.CompletionRequest
-		expectedError  string
-		expectedText   string
-		checkResponse  func(*testing.T, *core.CompletionResponse)
+		name          string
+		setup         func(*Provider)
+		request       *core.CompletionRequest
+		expectedError string
+		expectedText  string
+		checkResponse func(*testing.T, *core.CompletionResponse)
 	}{
 		{
 			name:  "successful basic completion",
@@ -143,7 +143,7 @@ func TestProvider_CreateCompletion(t *testing.T) {
 			expectedError: "global error",
 		},
 		{
-			name: "invalid request",
+			name:  "invalid request",
 			setup: func(p *Provider) {},
 			request: &core.CompletionRequest{
 				Model:    "", // Empty model
@@ -382,7 +382,7 @@ func TestProvider_StreamCompletion(t *testing.T) {
 			expectedError: "streaming not supported",
 		},
 		{
-			name: "invalid request",
+			name:  "invalid request",
 			setup: func(p *Provider) {},
 			request: &core.CompletionRequest{
 				Model:    "",

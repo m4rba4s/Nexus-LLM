@@ -180,14 +180,14 @@ func ValidateTLSConfig(config *tls.Config) error {
 // SanitizeForLogging sanitizes sensitive data for logging
 func SanitizeForLogging(data map[string]interface{}) map[string]interface{} {
 	sensitiveFields := map[string]bool{
-		"api_key":      true,
-		"apikey":       true,
-		"key":          true,
-		"token":        true,
-		"password":     true,
-		"secret":       true,
-		"credential":   true,
-		"auth":         true,
+		"api_key":       true,
+		"apikey":        true,
+		"key":           true,
+		"token":         true,
+		"password":      true,
+		"secret":        true,
+		"credential":    true,
+		"auth":          true,
 		"authorization": true,
 	}
 
@@ -270,12 +270,12 @@ const (
 
 // CircuitBreaker implements the circuit breaker pattern
 type CircuitBreaker struct {
-	maxFailures   int
-	resetTimeout  time.Duration
-	failures      int
-	lastFailure   time.Time
-	state         CircuitBreakerState
-	mu            sync.RWMutex
+	maxFailures  int
+	resetTimeout time.Duration
+	failures     int
+	lastFailure  time.Time
+	state        CircuitBreakerState
+	mu           sync.RWMutex
 }
 
 // NewCircuitBreaker creates a new circuit breaker
@@ -419,10 +419,10 @@ func SecureHTTPClient(timeout time.Duration) *http.Client {
 // ValidateHTTPHeaders validates HTTP headers for security
 func ValidateHTTPHeaders(headers map[string]string) error {
 	dangerousHeaders := map[string]bool{
-		"x-forwarded-for":    true,
-		"x-real-ip":          true,
-		"x-forwarded-proto":  true,
-		"x-forwarded-host":   true,
+		"x-forwarded-for":   true,
+		"x-real-ip":         true,
+		"x-forwarded-proto": true,
+		"x-forwarded-host":  true,
 	}
 
 	for name, value := range headers {
@@ -470,10 +470,10 @@ func IsSecureContext(scheme string, host string) bool {
 // SecurityHeaders returns recommended security headers for HTTP responses
 func SecurityHeaders() map[string]string {
 	return map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
-		"Referrer-Policy":        "strict-origin-when-cross-origin",
+		"X-Content-Type-Options":  "nosniff",
+		"X-Frame-Options":         "DENY",
+		"X-XSS-Protection":        "1; mode=block",
+		"Referrer-Policy":         "strict-origin-when-cross-origin",
 		"Content-Security-Policy": "default-src 'self'",
 	}
 }

@@ -35,8 +35,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
-
-
 )
 
 // ProfileManager manages configuration profiles and their persistence.
@@ -170,9 +168,9 @@ func (pm *ProfileManager) Load() error {
 // Save writes the current profiles to the configuration file.
 func (pm *ProfileManager) Save() error {
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(pm.filepath), 0755); err != nil {
-		return fmt.Errorf("failed to create profiles directory: %w", err)
-	}
+    if err := os.MkdirAll(filepath.Dir(pm.filepath), 0700); err != nil {
+        return fmt.Errorf("failed to create profiles directory: %w", err)
+    }
 
 	config := ProfilesConfig{
 		Version:       "1.0",
@@ -186,11 +184,11 @@ func (pm *ProfileManager) Save() error {
 		return fmt.Errorf("failed to marshal profiles: %w", err)
 	}
 
-	if err := os.WriteFile(pm.filepath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write profiles file: %w", err)
-	}
+    if err := os.WriteFile(pm.filepath, data, 0600); err != nil {
+        return fmt.Errorf("failed to write profiles file: %w", err)
+    }
 
-	return nil
+    return nil
 }
 
 // GetProfile retrieves a profile by name with inheritance resolution.
@@ -425,47 +423,47 @@ func (pm *ProfileManager) initializeDefaults() error {
 
 	// Coding profile optimized for programming tasks
 	codingProfile := &Profile{
-		Name:        "coding",
-		Description: "Optimized for programming and technical tasks",
-		Provider:    "deepseek",
-		Model:       "deepseek-coder",
-		Temperature: floatPtr(0.2),
-		MaxTokens:   intPtr(4000),
-		Stream:      boolPtr(true),
+		Name:          "coding",
+		Description:   "Optimized for programming and technical tasks",
+		Provider:      "deepseek",
+		Model:         "deepseek-coder",
+		Temperature:   floatPtr(0.2),
+		MaxTokens:     intPtr(4000),
+		Stream:        boolPtr(true),
 		SystemMessage: "You are an expert software engineer. Provide precise, well-documented code solutions with clear explanations.",
-		Tags:        []string{"programming", "technical", "precise"},
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Tags:          []string{"programming", "technical", "precise"},
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	// Creative profile for creative writing and brainstorming
 	creativeProfile := &Profile{
-		Name:        "creative",
-		Description: "Optimized for creative writing and brainstorming",
-		Provider:    "claude",
-		Model:       "claude-3-sonnet",
-		Temperature: floatPtr(0.9),
-		MaxTokens:   intPtr(3000),
-		Stream:      boolPtr(true),
+		Name:          "creative",
+		Description:   "Optimized for creative writing and brainstorming",
+		Provider:      "claude",
+		Model:         "claude-3-sonnet",
+		Temperature:   floatPtr(0.9),
+		MaxTokens:     intPtr(3000),
+		Stream:        boolPtr(true),
 		SystemMessage: "You are a creative writing assistant. Be imaginative, expressive, and help develop unique ideas.",
-		Tags:        []string{"creative", "writing", "imaginative"},
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Tags:          []string{"creative", "writing", "imaginative"},
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	// Analysis profile for analytical and research tasks
 	analysisProfile := &Profile{
-		Name:        "analysis",
-		Description: "Optimized for analytical thinking and research tasks",
-		Provider:    "openai",
-		Model:       "gpt-4",
-		Temperature: floatPtr(0.3),
-		MaxTokens:   intPtr(3500),
-		Stream:      boolPtr(true),
+		Name:          "analysis",
+		Description:   "Optimized for analytical thinking and research tasks",
+		Provider:      "openai",
+		Model:         "gpt-4",
+		Temperature:   floatPtr(0.3),
+		MaxTokens:     intPtr(3500),
+		Stream:        boolPtr(true),
 		SystemMessage: "You are a research analyst. Provide thorough, well-reasoned analysis with supporting evidence.",
-		Tags:        []string{"analysis", "research", "thorough"},
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Tags:          []string{"analysis", "research", "thorough"},
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	pm.profiles["default"] = defaultProfile

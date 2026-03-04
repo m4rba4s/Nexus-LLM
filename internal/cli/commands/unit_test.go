@@ -19,13 +19,13 @@ import (
 
 // MockProvider implements core.Provider for testing
 type MockProvider struct {
-	response       string
-	streamChunks   []string
-	models         []core.Model
-	shouldError    bool
-	errorMessage   string
-	callCount      int
-	lastRequest    *core.CompletionRequest
+	response     string
+	streamChunks []string
+	models       []core.Model
+	shouldError  bool
+	errorMessage string
+	callCount    int
+	lastRequest  *core.CompletionRequest
 }
 
 func NewMockProvider() *MockProvider {
@@ -490,33 +490,33 @@ func TestBuildCodeCompletionRequest(t *testing.T) {
 		expected string // Expected system message content
 	}{
 		{
-			name:  "python code",
-			code:  "def factorial(n):",
-			flags: CompleteFlags{Language: "python"},
+			name:     "python code",
+			code:     "def factorial(n):",
+			flags:    CompleteFlags{Language: "python"},
 			expected: "You are a Python code completion assistant",
 		},
 		{
-			name:  "go code",
-			code:  "func main() {",
-			flags: CompleteFlags{Language: "go"},
+			name:     "go code",
+			code:     "func main() {",
+			flags:    CompleteFlags{Language: "go"},
 			expected: "You are a Go code completion assistant",
 		},
 		{
-			name:  "javascript code",
-			code:  "function test() {",
-			flags: CompleteFlags{Language: "javascript"},
+			name:     "javascript code",
+			code:     "function test() {",
+			flags:    CompleteFlags{Language: "javascript"},
 			expected: "You are a JavaScript code completion assistant",
 		},
 		{
-			name:  "auto-detect python",
-			code:  "def hello():",
-			flags: CompleteFlags{},
+			name:     "auto-detect python",
+			code:     "def hello():",
+			flags:    CompleteFlags{},
 			expected: "Python", // Should auto-detect
 		},
 		{
-			name:  "auto-detect go",
-			code:  "package main",
-			flags: CompleteFlags{},
+			name:     "auto-detect go",
+			code:     "package main",
+			flags:    CompleteFlags{},
 			expected: "Go", // Should auto-detect
 		},
 	}
@@ -542,7 +542,7 @@ func TestBuildCodeCompletionRequest(t *testing.T) {
 	}
 }
 
-func TestDetectLanguage(t *testing.T) {
+func TestDetectCodeLanguage(t *testing.T) {
 	tests := []struct {
 		name     string
 		code     string
@@ -592,7 +592,7 @@ func TestDetectLanguage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := detectLanguage(tt.code)
+			result := detectCodeLanguage(tt.code)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -602,7 +602,7 @@ func TestProviderSelection(t *testing.T) {
 	cfg := &config.Config{
 		DefaultProvider: "openai",
 		Providers: map[string]config.ProviderConfig{
-			"openai": {Type: "openai"},
+			"openai":    {Type: "openai"},
 			"anthropic": {Type: "anthropic"},
 		},
 	}
@@ -635,8 +635,8 @@ func TestProviderSelection(t *testing.T) {
 // Benchmark tests
 func BenchmarkBuildCompletionRequest(b *testing.B) {
 	flags := &ChatFlags{
-		Temperature: 0.7,
-		MaxTokens:   100,
+		Temperature:   0.7,
+		MaxTokens:     100,
 		SystemMessage: "You are helpful",
 	}
 	message := "Hello, world!"
@@ -649,14 +649,14 @@ func BenchmarkBuildCompletionRequest(b *testing.B) {
 	}
 }
 
-func BenchmarkDetectLanguage(b *testing.B) {
+func BenchmarkDetectCodeLanguage(b *testing.B) {
 	code := "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)"
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = detectLanguage(code)
+		_ = detectCodeLanguage(code)
 	}
 }
 
@@ -753,7 +753,7 @@ func readInput(stdin io.Reader, args []string) (string, error) {
 func buildCodeCompletionRequest(code string, flags *CompleteFlags) *core.CompletionRequest {
 	language := flags.Language
 	if language == "" {
-		language = detectLanguage(code)
+		language = detectCodeLanguage(code)
 	}
 
 	systemMsg := buildSystemMessage(language)
@@ -767,7 +767,7 @@ func buildCodeCompletionRequest(code string, flags *CompleteFlags) *core.Complet
 	}
 }
 
-func detectLanguage(code string) string {
+func detectCodeLanguage(code string) string {
 	codeLower := strings.ToLower(code)
 
 	// Check for Go-specific patterns first (more specific)

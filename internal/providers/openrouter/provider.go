@@ -26,14 +26,14 @@ const (
 
 // Config holds the configuration for the OpenRouter provider.
 type Config struct {
-	APIKey      string            `json:"api_key"`
-	BaseURL     string            `json:"base_url"`
-	Model       string            `json:"model"`
-	MaxRetries  int               `json:"max_retries"`
-	Timeout     time.Duration     `json:"timeout"`
-	Headers     map[string]string `json:"headers"`
-	SiteURL     string            `json:"site_url"`     // For OpenRouter rankings
-	SiteName    string            `json:"site_name"`    // For OpenRouter rankings
+	APIKey     string            `json:"api_key"`
+	BaseURL    string            `json:"base_url"`
+	Model      string            `json:"model"`
+	MaxRetries int               `json:"max_retries"`
+	Timeout    time.Duration     `json:"timeout"`
+	Headers    map[string]string `json:"headers"`
+	SiteURL    string            `json:"site_url"`  // For OpenRouter rankings
+	SiteName   string            `json:"site_name"` // For OpenRouter rankings
 }
 
 // Provider implements the OpenRouter API provider.
@@ -68,7 +68,6 @@ func New(config Config) (*Provider, error) {
 		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
-
 	// Set default headers
 	headers := map[string]string{
 		"Content-Type":  "application/json",
@@ -87,8 +86,6 @@ func New(config Config) (*Provider, error) {
 	for k, v := range config.Headers {
 		headers[k] = v
 	}
-
-
 
 	return &Provider{
 		config: config,
@@ -144,10 +141,15 @@ func (p *Provider) CreateCompletion(ctx context.Context, req *core.CompletionReq
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	// Check for non-200 status codes
+	if httpResp.StatusCode != 200 {
+		return nil, fmt.Errorf("API request failed with status %d: %s", httpResp.StatusCode, string(respBody))
+	}
+
 	// Parse response
 	var openrouterResp OpenRouterResponse
 	if err := json.Unmarshal(respBody, &openrouterResp); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
+		return nil, fmt.Errorf("failed to parse response: %w (body: %s)", err, string(respBody))
 	}
 
 	// Convert to standard response format
@@ -309,14 +311,14 @@ func (p *Provider) convertResponse(openrouterResp *OpenRouterResponse, originalR
 
 // OpenRouterRequest represents a request to the OpenRouter API.
 type OpenRouterRequest struct {
-	Model            string                `json:"model"`
-	Messages         []OpenRouterMessage   `json:"messages"`
-	MaxTokens        int                   `json:"max_tokens,omitempty"`
-	Temperature      float64               `json:"temperature,omitempty"`
-	TopP             float64               `json:"top_p,omitempty"`
-	FrequencyPenalty float64               `json:"frequency_penalty,omitempty"`
-	PresencePenalty  float64               `json:"presence_penalty,omitempty"`
-	Stream           bool                  `json:"stream,omitempty"`
+	Model            string              `json:"model"`
+	Messages         []OpenRouterMessage `json:"messages"`
+	MaxTokens        int                 `json:"max_tokens,omitempty"`
+	Temperature      float64             `json:"temperature,omitempty"`
+	TopP             float64             `json:"top_p,omitempty"`
+	FrequencyPenalty float64             `json:"frequency_penalty,omitempty"`
+	PresencePenalty  float64             `json:"presence_penalty,omitempty"`
+	Stream           bool                `json:"stream,omitempty"`
 }
 
 // OpenRouterMessage represents a message in an OpenRouter request.
@@ -327,19 +329,19 @@ type OpenRouterMessage struct {
 
 // OpenRouterResponse represents a response from the OpenRouter API.
 type OpenRouterResponse struct {
-	ID      string                `json:"id"`
-	Object  string                `json:"object"`
-	Created int64                 `json:"created"`
-	Model   string                `json:"model"`
-	Choices []OpenRouterChoice    `json:"choices"`
-	Usage   OpenRouterUsage       `json:"usage"`
+	ID      string             `json:"id"`
+	Object  string             `json:"object"`
+	Created int64              `json:"created"`
+	Model   string             `json:"model"`
+	Choices []OpenRouterChoice `json:"choices"`
+	Usage   OpenRouterUsage    `json:"usage"`
 }
 
 // OpenRouterChoice represents a choice in an OpenRouter response.
 type OpenRouterChoice struct {
-	Index        int                   `json:"index"`
-	Message      OpenRouterMessage     `json:"message"`
-	FinishReason string                `json:"finish_reason"`
+	Index        int               `json:"index"`
+	Message      OpenRouterMessage `json:"message"`
+	FinishReason string            `json:"finish_reason"`
 }
 
 // OpenRouterUsage represents usage information in an OpenRouter response.
@@ -351,18 +353,18 @@ type OpenRouterUsage struct {
 
 // OpenRouterStreamResponse represents a streaming response from OpenRouter.
 type OpenRouterStreamResponse struct {
-	ID      string                      `json:"id"`
-	Object  string                      `json:"object"`
-	Created int64                       `json:"created"`
-	Model   string                      `json:"model"`
-	Choices []OpenRouterStreamChoice    `json:"choices"`
+	ID      string                   `json:"id"`
+	Object  string                   `json:"object"`
+	Created int64                    `json:"created"`
+	Model   string                   `json:"model"`
+	Choices []OpenRouterStreamChoice `json:"choices"`
 }
 
 // OpenRouterStreamChoice represents a streaming choice.
 type OpenRouterStreamChoice struct {
-	Index        int                       `json:"index"`
-	Delta        OpenRouterStreamDelta     `json:"delta"`
-	FinishReason string                    `json:"finish_reason"`
+	Index        int                   `json:"index"`
+	Delta        OpenRouterStreamDelta `json:"delta"`
+	FinishReason string                `json:"finish_reason"`
 }
 
 // OpenRouterStreamDelta represents a streaming delta.
@@ -388,4 +390,55 @@ type OpenRouterModel struct {
 type OpenRouterModelPricing struct {
 	Prompt     float64 `json:"prompt"`
 	Completion float64 `json:"completion"`
+}
+
+// NewFromConfig creates a new OpenRouter provider from core configuration.
+// This is used by the provider registry for dynamic provider creation.
+func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
+	// Convert core config to OpenRouter-specific config
+	openrouterConfig := Config{
+		APIKey:     config.APIKey,
+		BaseURL:    "https://openrouter.ai/api/v1",
+		Model:      "openai/gpt-4o-mini", // Default model
+		Timeout:    30 * time.Second,
+		MaxRetries: 3,
+	}
+
+	// Apply settings from core config if provided
+	if config.BaseURL != "" {
+		openrouterConfig.BaseURL = config.BaseURL
+	}
+	if config.Timeout > 0 {
+		openrouterConfig.Timeout = config.Timeout
+	}
+	if config.MaxRetries > 0 {
+		openrouterConfig.MaxRetries = config.MaxRetries
+	}
+
+	// Parse provider-specific extra settings
+	if config.Extra != nil {
+		if model, ok := config.Extra["default_model"].(string); ok {
+			openrouterConfig.Model = model
+		}
+		if siteURL, ok := config.Extra["site_url"].(string); ok {
+			openrouterConfig.SiteURL = siteURL
+		}
+		if siteName, ok := config.Extra["site_name"].(string); ok {
+			openrouterConfig.SiteName = siteName
+		}
+		if headers, ok := config.Extra["headers"].(map[string]string); ok {
+			openrouterConfig.Headers = headers
+		}
+	}
+
+	provider, err := New(openrouterConfig)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
+}
+
+// init registers the OpenRouter provider factory with the global registry.
+func init() {
+	core.RegisterProviderFactory("openrouter", NewFromConfig)
 }

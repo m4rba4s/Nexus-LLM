@@ -163,12 +163,17 @@ gollm complete [flags] <prompt>
 
 #### Flags
 
-Same as chat command, plus:
+Core flags (in addition to chat):
 
-| Flag | Short | Type | Description | Default |
-|------|-------|------|-------------|---------|
-| `--language` | `-l` | string | Programming language for context | auto-detect |
-| `--file` | `-f` | string | File to complete (reads content) | "" |
+- `--language` string: Programming language for context (auto-detected from `--input-file` extension if omitted)
+- `--style` string: Completion style (`function`, `class`, `comment`, `fix`, `test`, `refactor`, `explain`; default `function`)
+- `--multiple` int: Generate multiple options (1–5)
+- `--input-file` string: Read code from file instead of argument
+- `--output-file` string: Save completion to file
+- `--stream` / `--no-stream`: Enable or disable streaming (default is non-streaming for code completion)
+- `--show-context`: Include original code context in output
+- `--show-explanation`: Include short explanation of the completion
+- `--raw`: Output raw response without formatting/highlighting
 
 #### Examples
 
@@ -177,10 +182,16 @@ Same as chat command, plus:
 gollm complete "def fibonacci(n):"
 
 # From file
-gollm complete --file main.go "// Add error handling"
+gollm complete --input-file main.go --style fix
 
-# Specific language
-gollm complete --language python "class Calculator:"
+# Specific language and style
+gollm complete --language python --style class "class Calculator:"
+
+# Multiple options
+gollm complete --multiple 3 "def sort_array(arr):"
+
+# Save to file
+gollm complete --input-file handler.go --style test --output-file handler_test.go
 ```
 
 ### Interactive

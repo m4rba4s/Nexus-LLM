@@ -51,9 +51,9 @@ type Provider struct {
 	metrics *core.ProviderMetrics
 
 	// Model capabilities cache
-	modelsCache      []core.Model
-	modelsCacheTime  time.Time
-	modelsCacheTTL   time.Duration
+	modelsCache     []core.Model
+	modelsCacheTime time.Time
+	modelsCacheTTL  time.Duration
 }
 
 // Config configures the Anthropic provider.
@@ -122,10 +122,10 @@ func New(config Config) (*Provider, error) {
 	}
 
 	provider := &Provider{
-		config:          config,
-		client:          client,
-		metrics:         core.NewProviderMetrics(),
-		modelsCacheTTL:  5 * time.Minute,
+		config:         config,
+		client:         client,
+		metrics:        core.NewProviderMetrics(),
+		modelsCacheTTL: 5 * time.Minute,
 	}
 
 	return provider, nil
@@ -492,8 +492,8 @@ func (p *Provider) streamRequest(ctx context.Context, req *anthropicCompletionRe
 // convertRequest converts a core request to Anthropic format.
 func (p *Provider) convertRequest(req *core.CompletionRequest) (*anthropicCompletionRequest, error) {
 	anthropicReq := &anthropicCompletionRequest{
-		Model:   req.Model,
-		Stream:  req.Stream,
+		Model:  req.Model,
+		Stream: req.Stream,
 	}
 
 	// Separate system message from other messages
@@ -756,14 +756,14 @@ type anthropicMessage struct {
 }
 
 type anthropicCompletionResponse struct {
-	ID         string                `json:"id"`
-	Type       string                `json:"type"`
-	Role       string                `json:"role"`
-	Content    []anthropicContent    `json:"content"`
-	Model      string                `json:"model"`
-	StopReason string                `json:"stop_reason"`
-	StopSequence *string             `json:"stop_sequence"`
-	Usage      anthropicUsage        `json:"usage"`
+	ID           string             `json:"id"`
+	Type         string             `json:"type"`
+	Role         string             `json:"role"`
+	Content      []anthropicContent `json:"content"`
+	Model        string             `json:"model"`
+	StopReason   string             `json:"stop_reason"`
+	StopSequence *string            `json:"stop_sequence"`
+	Usage        anthropicUsage     `json:"usage"`
 }
 
 type anthropicContent struct {
@@ -777,18 +777,18 @@ type anthropicUsage struct {
 }
 
 type anthropicStreamEvent struct {
-	Type    string                        `json:"type"`
-	Message *anthropicStreamMessage       `json:"message,omitempty"`
-	Index   *int                          `json:"index,omitempty"`
-	Delta   *anthropicStreamDelta         `json:"delta,omitempty"`
+	Type    string                  `json:"type"`
+	Message *anthropicStreamMessage `json:"message,omitempty"`
+	Index   *int                    `json:"index,omitempty"`
+	Delta   *anthropicStreamDelta   `json:"delta,omitempty"`
 }
 
 type anthropicStreamMessage struct {
-	ID     string         `json:"id"`
-	Type   string         `json:"type"`
-	Role   string         `json:"role"`
-	Model  string         `json:"model"`
-	Usage  *anthropicUsage `json:"usage,omitempty"`
+	ID    string          `json:"id"`
+	Type  string          `json:"type"`
+	Role  string          `json:"role"`
+	Model string          `json:"model"`
+	Usage *anthropicUsage `json:"usage,omitempty"`
 }
 
 type anthropicStreamDelta struct {
@@ -835,9 +835,5 @@ func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
 
 // init registers the Anthropic provider factory with the global registry.
 func init() {
-	err := core.RegisterProviderFactory("anthropic", NewFromConfig)
-	if err != nil {
-		// This should never happen during normal initialization
-		panic(fmt.Sprintf("failed to register Anthropic provider factory: %v", err))
-	}
+	core.RegisterProviderFactory("anthropic", NewFromConfig)
 }

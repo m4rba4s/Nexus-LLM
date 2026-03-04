@@ -294,8 +294,8 @@ func TestModel_String(t *testing.T) {
 			expected: "Model{ID: claude-3-sonnet, Provider: anthropic, MaxTokens: <nil>}",
 		},
 		{
-			name: "empty model",
-			model: Model{},
+			name:     "empty model",
+			model:    Model{},
 			expected: "Model{ID: , Provider: , MaxTokens: <nil>}",
 		},
 	}
@@ -421,12 +421,12 @@ func TestProviderConfig_Validate(t *testing.T) {
 		{
 			name: "valid config with all fields",
 			config: ProviderConfig{
-				Type:        "anthropic",
-				APIKey:      "ak-test",
-				BaseURL:     "https://api.anthropic.com",
-				MaxRetries:  3,
-				Timeout:     30 * time.Second,
-				RateLimit:   "60/minute",
+				Type:       "anthropic",
+				APIKey:     "ak-test",
+				BaseURL:    "https://api.anthropic.com",
+				MaxRetries: 3,
+				Timeout:    30 * time.Second,
+				RateLimit:  "60/minute",
 				CustomHeaders: map[string]string{
 					"X-Custom": "value",
 				},
@@ -745,8 +745,8 @@ func TestCompletionResponse_String(t *testing.T) {
 		{
 			name: "response with single choice",
 			response: CompletionResponse{
-				ID:      "test-123",
-				Model:   "gpt-3.5-turbo",
+				ID:    "test-123",
+				Model: "gpt-3.5-turbo",
 				Choices: []Choice{
 					{
 						Index: 0,
@@ -763,8 +763,8 @@ func TestCompletionResponse_String(t *testing.T) {
 		{
 			name: "response with multiple choices",
 			response: CompletionResponse{
-				ID:      "test-456",
-				Model:   "gpt-4",
+				ID:    "test-456",
+				Model: "gpt-4",
 				Choices: []Choice{
 					{Index: 0, Message: Message{Content: "Choice 1"}},
 					{Index: 1, Message: Message{Content: "Choice 2"}},
@@ -800,8 +800,8 @@ func TestStreamChunk_String(t *testing.T) {
 		{
 			name: "chunk with choices",
 			chunk: StreamChunk{
-				ID:      "stream-123",
-				Model:   "gpt-3.5-turbo",
+				ID:    "stream-123",
+				Model: "gpt-3.5-turbo",
 				Choices: []Choice{
 					{
 						Index: 0,

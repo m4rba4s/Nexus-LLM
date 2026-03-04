@@ -12,15 +12,20 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yourusername/gollm/internal/config"
 	"github.com/yourusername/gollm/internal/core"
 	"github.com/yourusername/gollm/internal/display"
 
 	// Import providers to trigger their init() registration
 	_ "github.com/yourusername/gollm/internal/providers/anthropic"
+	_ "github.com/yourusername/gollm/internal/providers/deepseek"
+	_ "github.com/yourusername/gollm/internal/providers/gemini"
 	_ "github.com/yourusername/gollm/internal/providers/mock"
 	_ "github.com/yourusername/gollm/internal/providers/openai"
+	_ "github.com/yourusername/gollm/internal/providers/openrouter"
 )
+
+// Writer for completion output; set per command execution
+var compOut io.Writer = os.Stdout
 
 // CompleteFlags contains flags specific to the complete command.
 type CompleteFlags struct {
@@ -135,6 +140,7 @@ Examples:
   gollm complete "handle_request" --context "Flask web application" --language python`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			compOut = cmd.OutOrStdout()
 			return runCompleteCommand(cmd, args, flags)
 		},
 	}
@@ -216,8 +222,8 @@ func runCompleteCommand(cmd *cobra.Command, args []string, flags *CompleteFlags)
 	ctx, cancel := setupContext(cmd)
 	defer cancel()
 
-	// Get code input from args, file, or stdin
-	codeInput, language, err := getCodeInput(args, flags)
+	// Get code input from args, file, or stdin (cobra input)
+	codeInput, language, err := getCodeInputFrom(cmd, args, flags)
 	if err != nil {
 		return fmt.Errorf("failed to get code input: %w", err)
 	}
@@ -231,8 +237,8 @@ func runCompleteCommand(cmd *cobra.Command, args []string, flags *CompleteFlags)
 		return err
 	}
 
-	// Load configuration
-	cfg, err := config.Load()
+	// Load configuration (or injected during tests)
+	cfg, err := getInjectedOrLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -305,10 +311,54 @@ func getCodeInput(args []string, flags *CompleteFlags) (string, string, error) {
 	return codeInput, language, nil
 }
 
+// getCodeInputFrom reads from cmd.InOrStdin for testability
+func getCodeInputFrom(cmd *cobra.Command, args []string, flags *CompleteFlags) (string, string, error) {
+	if flags.InputFile != "" {
+		data, err := os.ReadFile(flags.InputFile)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to read input file: %w", err)
+		}
+		if flags.Language == "" {
+			return string(data), detectLanguageFromExtension(flags.InputFile), nil
+		}
+		return string(data), flags.Language, nil
+	}
+
+	if len(args) > 0 {
+		return args[0], flags.Language, nil
+	}
+
+	in := cmd.InOrStdin()
+	// peek if char device
+	if f, ok := in.(*os.File); ok {
+		if fi, err := f.Stat(); err == nil {
+			if (fi.Mode() & os.ModeCharDevice) != 0 {
+				return "", "", nil
+			}
+		}
+	}
+	data, err := io.ReadAll(in)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read from stdin: %w", err)
+	}
+	return string(data), flags.Language, nil
+}
+
 // validateCompleteFlags validates completion flags.
 func validateCompleteFlags(flags *CompleteFlags) error {
+	// Treat 0 as default (1)
+	if flags.MultipleOptions == 0 {
+		flags.MultipleOptions = 1
+	}
 	if flags.MultipleOptions < 1 || flags.MultipleOptions > 5 {
 		return fmt.Errorf("multiple options must be between 1 and 5")
+	}
+
+	if flags.Temperature < 0 || flags.Temperature > 2 {
+		return fmt.Errorf("temperature must be between 0 and 2")
+	}
+	if flags.MaxTokens < 0 {
+		return fmt.Errorf("max tokens must be positive")
 	}
 
 	if flags.Style != "" {
@@ -371,7 +421,7 @@ func generateMultipleCompletions(ctx context.Context, provider core.Provider, co
 		}
 
 		if i < flags.MultipleOptions-1 && !flags.Quiet {
-			fmt.Printf("\n" + strings.Repeat("═", 50) + "\n\n")
+			fmt.Print("\n" + strings.Repeat("═", 50) + "\n\n")
 		}
 	}
 
@@ -571,7 +621,7 @@ func executeNonStreamingComplete(ctx context.Context, provider core.Provider, re
 
 // outputCompletion processes and outputs the completion result with smart syntax highlighting.
 func outputCompletion(response string, usage *core.Usage, originalCode string, flags *CompleteFlags) error {
-	var outputWriter io.Writer = os.Stdout
+	var outputWriter io.Writer = compOut
 	var outputFile *os.File
 	var err error
 
@@ -690,47 +740,47 @@ func detectLanguageFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 
 	languageMap := map[string]string{
-		".go":     "go",
-		".py":     "python",
-		".js":     "javascript",
-		".ts":     "typescript",
-		".java":   "java",
-		".cpp":    "cpp",
-		".cc":     "cpp",
-		".cxx":    "cpp",
-		".c":      "c",
-		".h":      "c",
-		".hpp":    "cpp",
-		".cs":     "csharp",
-		".rb":     "ruby",
-		".php":    "php",
-		".swift":  "swift",
-		".kt":     "kotlin",
-		".rs":     "rust",
-		".scala":  "scala",
-		".sh":     "bash",
-		".bash":   "bash",
-		".zsh":    "zsh",
-		".ps1":    "powershell",
-		".sql":    "sql",
-		".html":   "html",
-		".css":    "css",
-		".scss":   "scss",
-		".sass":   "sass",
-		".less":   "less",
-		".xml":    "xml",
-		".json":   "json",
-		".yaml":   "yaml",
-		".yml":    "yaml",
-		".toml":   "toml",
-		".md":     "markdown",
-		".tex":    "latex",
-		".r":      "r",
-		".m":      "matlab",
-		".pl":     "perl",
-		".lua":    "lua",
-		".vim":    "vim",
-		".fish":   "fish",
+		".go":    "go",
+		".py":    "python",
+		".js":    "javascript",
+		".ts":    "typescript",
+		".java":  "java",
+		".cpp":   "cpp",
+		".cc":    "cpp",
+		".cxx":   "cpp",
+		".c":     "c",
+		".h":     "c",
+		".hpp":   "cpp",
+		".cs":    "csharp",
+		".rb":    "ruby",
+		".php":   "php",
+		".swift": "swift",
+		".kt":    "kotlin",
+		".rs":    "rust",
+		".scala": "scala",
+		".sh":    "bash",
+		".bash":  "bash",
+		".zsh":   "zsh",
+		".ps1":   "powershell",
+		".sql":   "sql",
+		".html":  "html",
+		".css":   "css",
+		".scss":  "scss",
+		".sass":  "sass",
+		".less":  "less",
+		".xml":   "xml",
+		".json":  "json",
+		".yaml":  "yaml",
+		".yml":   "yaml",
+		".toml":  "toml",
+		".md":    "markdown",
+		".tex":   "latex",
+		".r":     "r",
+		".m":     "matlab",
+		".pl":    "perl",
+		".lua":   "lua",
+		".vim":   "vim",
+		".fish":  "fish",
 	}
 
 	if lang, exists := languageMap[ext]; exists {

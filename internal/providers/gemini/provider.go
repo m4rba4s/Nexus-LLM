@@ -34,13 +34,13 @@ const (
 
 // Config holds the configuration for the Gemini provider.
 type Config struct {
-	APIKey        string            `json:"api_key" validate:"required"`
-	BaseURL       string            `json:"base_url,omitempty"`
-	Model         string            `json:"model,omitempty"`
-	MaxRetries    int               `json:"max_retries,omitempty"`
-	Timeout       time.Duration     `json:"timeout,omitempty"`
-	Headers       map[string]string `json:"headers,omitempty"`
-	UserAgent     string            `json:"user_agent,omitempty"`
+	APIKey     string            `json:"api_key" validate:"required"`
+	BaseURL    string            `json:"base_url,omitempty"`
+	Model      string            `json:"model,omitempty"`
+	MaxRetries int               `json:"max_retries,omitempty"`
+	Timeout    time.Duration     `json:"timeout,omitempty"`
+	Headers    map[string]string `json:"headers,omitempty"`
+	UserAgent  string            `json:"user_agent,omitempty"`
 }
 
 // Provider implements the Gemini API provider.
@@ -51,9 +51,9 @@ type Provider struct {
 	metrics *core.ProviderMetrics
 
 	// Model capabilities cache
-	modelsCache      []core.Model
-	modelsCacheTime  time.Time
-	modelsCacheTTL   time.Duration
+	modelsCache     []core.Model
+	modelsCacheTime time.Time
+	modelsCacheTTL  time.Duration
 }
 
 // New creates a new Gemini provider instance.
@@ -96,10 +96,10 @@ func New(config Config) (*Provider, error) {
 	}
 
 	return &Provider{
-		config:          config,
-		client:          client,
-		modelsCacheTTL:  10 * time.Minute,
-		metrics:         &core.ProviderMetrics{},
+		config:         config,
+		client:         client,
+		modelsCacheTTL: 10 * time.Minute,
+		metrics:        &core.ProviderMetrics{},
 	}, nil
 }
 
@@ -236,8 +236,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			MaxTokens:         &[]int{1048576}[0],
 			SupportsFunctions: true,
 			SupportsStreaming: false,
-			InputCostPer1K:    &[]float64{0.075}[0],  // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{0.30}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{0.075}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{0.30}[0],  // per 1M tokens -> per 1K
 			Description:       "Gemini 2.0 Flash - Fast and efficient model",
 			Tags:              []string{"fast", "multimodal"},
 		},
@@ -249,8 +249,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			SupportsFunctions: true,
 			SupportsStreaming: false,
 			SupportsVision:    true,
-			InputCostPer1K:    &[]float64{1.25}[0],   // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{5.00}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{1.25}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{5.00}[0], // per 1M tokens -> per 1K
 			Description:       "Gemini 1.5 Pro - High-performance model with vision",
 			Tags:              []string{"pro", "multimodal", "vision"},
 		},
@@ -261,8 +261,8 @@ func (p *Provider) GetModels(ctx context.Context) ([]core.Model, error) {
 			MaxTokens:         &[]int{1048576}[0],
 			SupportsFunctions: true,
 			SupportsStreaming: false,
-			InputCostPer1K:    &[]float64{0.075}[0],  // per 1M tokens -> per 1K
-			OutputCostPer1K:   &[]float64{0.30}[0],   // per 1M tokens -> per 1K
+			InputCostPer1K:    &[]float64{0.075}[0], // per 1M tokens -> per 1K
+			OutputCostPer1K:   &[]float64{0.30}[0],  // per 1M tokens -> per 1K
 			Description:       "Gemini 1.5 Flash - Fast and cost-effective",
 			Tags:              []string{"fast", "economical"},
 		},
@@ -459,4 +459,49 @@ type GeminiUsage struct {
 	PromptTokenCount     int `json:"promptTokenCount"`
 	CandidatesTokenCount int `json:"candidatesTokenCount"`
 	TotalTokenCount      int `json:"totalTokenCount"`
+}
+
+// NewFromConfig creates a new Gemini provider from core configuration.
+// This is used by the provider registry for dynamic provider creation.
+func NewFromConfig(config core.ProviderConfig) (core.Provider, error) {
+	// Convert core config to Gemini-specific config
+	geminiConfig := Config{
+		APIKey:     config.APIKey,
+		BaseURL:    DefaultBaseURL,
+		Model:      DefaultModel,
+		MaxRetries: 3,
+		Timeout:    DefaultTimeout,
+		UserAgent:  UserAgent,
+	}
+
+	// Apply settings from core config if provided
+	if config.BaseURL != "" {
+		geminiConfig.BaseURL = config.BaseURL
+	}
+	if config.Timeout > 0 {
+		geminiConfig.Timeout = config.Timeout
+	}
+	if config.MaxRetries > 0 {
+		geminiConfig.MaxRetries = config.MaxRetries
+	}
+
+	// Parse provider-specific extra settings
+	if config.Extra != nil {
+		if model, ok := config.Extra["default_model"].(string); ok {
+			geminiConfig.Model = model
+		}
+		if headers, ok := config.Extra["headers"].(map[string]string); ok {
+			geminiConfig.Headers = headers
+		}
+		if userAgent, ok := config.Extra["user_agent"].(string); ok {
+			geminiConfig.UserAgent = userAgent
+		}
+	}
+
+	return New(geminiConfig)
+}
+
+// init registers the Gemini provider factory with the global registry.
+func init() {
+	core.RegisterProviderFactory("gemini", NewFromConfig)
 }

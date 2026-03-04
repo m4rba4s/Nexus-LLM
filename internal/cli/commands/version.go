@@ -10,10 +10,11 @@
 // - Raw format for simple version string
 //
 // Usage:
-//   gollm version
-//   gollm version --detailed
-//   gollm version --output json
-//   gollm version --check-updates
+//
+//	gollm version
+//	gollm version --detailed
+//	gollm version --output json
+//	gollm version --check-updates
 package commands
 
 import (
@@ -28,6 +29,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/fatih/color"
 	"github.com/yourusername/gollm/internal/display"
 )
 
@@ -51,23 +53,23 @@ type VersionInfo struct {
 	GoVersion string `json:"go_version"`
 
 	// Build information
-	BuildOS          string   `json:"build_os"`
-	BuildArch        string   `json:"build_arch"`
-	BuildTags        []string `json:"build_tags,omitempty"`
-	BuildUser        string   `json:"build_user,omitempty"`
-	BuildHost        string   `json:"build_host,omitempty"`
-	CompilerVersion  string   `json:"compiler_version"`
+	BuildOS         string   `json:"build_os"`
+	BuildArch       string   `json:"build_arch"`
+	BuildTags       []string `json:"build_tags,omitempty"`
+	BuildUser       string   `json:"build_user,omitempty"`
+	BuildHost       string   `json:"build_host,omitempty"`
+	CompilerVersion string   `json:"compiler_version"`
 
 	// Runtime information
-	RuntimeOS        string `json:"runtime_os"`
-	RuntimeArch      string `json:"runtime_arch"`
-	NumCPU           int    `json:"num_cpu"`
-	NumGoroutines    int    `json:"num_goroutines"`
-	MemAllocated     uint64 `json:"mem_allocated_bytes"`
-	MemSys           uint64 `json:"mem_sys_bytes"`
-	MemHeapInUse     uint64 `json:"mem_heap_inuse_bytes"`
-	NextGC           uint64 `json:"next_gc_bytes"`
-	LastGC           string `json:"last_gc_time"`
+	RuntimeOS     string `json:"runtime_os"`
+	RuntimeArch   string `json:"runtime_arch"`
+	NumCPU        int    `json:"num_cpu"`
+	NumGoroutines int    `json:"num_goroutines"`
+	MemAllocated  uint64 `json:"mem_allocated_bytes"`
+	MemSys        uint64 `json:"mem_sys_bytes"`
+	MemHeapInUse  uint64 `json:"mem_heap_inuse_bytes"`
+	NextGC        uint64 `json:"next_gc_bytes"`
+	LastGC        string `json:"last_gc_time"`
 
 	// Dependencies
 	Dependencies []DependencyInfo `json:"dependencies,omitempty"`
@@ -372,6 +374,10 @@ func displayVersionPretty(info *VersionInfo, updateInfo *UpdateInfo, flags *Vers
 		return
 	}
 
+	// Display ASCII logo
+	displayGOLLMLogo()
+	fmt.Println()
+
 	// Header
 	renderer.Info("🚀 GOLLM - High-Performance LLM CLI")
 	renderer.Info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -505,6 +511,63 @@ func formatBytes(bytes uint64) string {
 	}
 
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// displayGOLLMLogo displays the GOLLM ASCII logo with colors.
+func displayGOLLMLogo() {
+	logo := `░▒▓███████▓▒░░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓███████▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓██████▓▒░  ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░
+░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░`
+
+	// Apply gradient colors if color is supported
+	if shouldUseColors() {
+		lines := strings.Split(logo, "\n")
+		colors := []*color.Color{
+			color.New(color.FgHiCyan),    // Top line
+			color.New(color.FgCyan),      // Second line
+			color.New(color.FgHiBlue),    // Third line
+			color.New(color.FgBlue),      // Middle line (main focus)
+			color.New(color.FgHiMagenta), // Fifth line
+			color.New(color.FgMagenta),   // Sixth line
+			color.New(color.FgHiRed),     // Bottom line
+		}
+
+		for i, line := range lines {
+			if i < len(colors) {
+				fmt.Println(colors[i].Sprint(line))
+			} else {
+				fmt.Println(line)
+			}
+		}
+
+		// Add tagline
+		tagline := "\n              High-Performance CLI for Large Language Models\n            🚀 Lightning Fast • 🔗 Multi-Provider • 🎯 Enterprise Ready"
+		fmt.Println(color.New(color.FgHiWhite, color.Bold).Sprint(tagline))
+	} else {
+		fmt.Println(logo)
+		fmt.Println("\n              High-Performance CLI for Large Language Models")
+		fmt.Println("            🚀 Lightning Fast • 🔗 Multi-Provider • 🎯 Enterprise Ready")
+	}
+}
+
+// shouldUseColors determines if colors should be used based on environment and terminal support.
+func shouldUseColors() bool {
+	// Check for NO_COLOR environment variable
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+
+	// Check for FORCE_COLOR environment variable
+	if os.Getenv("FORCE_COLOR") != "" {
+		return true
+	}
+
+	// Use fatih/color's built-in detection
+	return !color.NoColor
 }
 
 // SetStartupMetrics sets startup performance metrics.

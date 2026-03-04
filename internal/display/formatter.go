@@ -184,7 +184,7 @@ func (rf *ResponseFormatter) formatAsJSON(response *core.CompletionResponse, dur
 
 	if rf.showTiming {
 		data["timing"] = map[string]interface{}{
-			"duration": duration.String(),
+			"duration":    duration.String(),
 			"duration_ms": duration.Milliseconds(),
 		}
 	}
@@ -445,7 +445,7 @@ func (rf *ResponseFormatter) looksLikeJSON(content string) bool {
 
 	// Quick JSON detection
 	if (strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}")) ||
-	   (strings.HasPrefix(content, "[") && strings.HasSuffix(content, "]")) {
+		(strings.HasPrefix(content, "[") && strings.HasSuffix(content, "]")) {
 		// Try to parse as JSON
 		var dummy interface{}
 		return json.Unmarshal([]byte(content), &dummy) == nil

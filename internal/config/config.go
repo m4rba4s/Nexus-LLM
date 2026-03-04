@@ -1,10 +1,10 @@
 // Package config provides comprehensive configuration management for GOLLM.
 //
 // The configuration system supports hierarchical loading with the following precedence:
-//   1. Command-line flags
-//   2. Environment variables
-//   3. Configuration file
-//   4. Default values
+//  1. Command-line flags
+//  2. Environment variables
+//  3. Configuration file
+//  4. Default values
 //
 // Configuration files are searched in the following locations:
 //   - ./config.yaml
@@ -45,6 +45,9 @@ type Config struct {
 	// Default provider to use when none is specified
 	DefaultProvider string `mapstructure:"default_provider" json:"default_provider" yaml:"default_provider" validate:"omitempty"`
 
+	// Default model (for simplified menu)
+	Model string `mapstructure:"model" json:"model" yaml:"model" validate:"omitempty"`
+
 	// Provider configurations
 	Providers map[string]ProviderConfig `mapstructure:"providers" json:"providers" yaml:"providers" validate:"omitempty"`
 
@@ -68,21 +71,24 @@ type Config struct {
 
 	// MCP (Model Context Protocol) configuration
 	MCP MCPConfig `mapstructure:"mcp" json:"mcp" yaml:"mcp"`
+
+	// Extra configuration (for menu-specific settings)
+	Extra map[string]interface{} `mapstructure:"extra" json:"extra" yaml:"extra"`
 }
 
 // ProviderConfig represents configuration for a single LLM provider.
 type ProviderConfig struct {
-	Type            string            `mapstructure:"type" json:"type" yaml:"type" validate:"required,oneof=openai anthropic ollama gemini deepseek openrouter custom"`
-	APIKey          SecureString      `mapstructure:"api_key" json:"api_key,omitempty" yaml:"api_key"`
-	BaseURL         string            `mapstructure:"base_url" json:"base_url,omitempty" yaml:"base_url" validate:"omitempty,url"`
-	Organization    string            `mapstructure:"organization" json:"organization,omitempty" yaml:"organization"`
-	MaxRetries      int               `mapstructure:"max_retries" json:"max_retries" yaml:"max_retries" validate:"min=0,max=10"`
-	Timeout         time.Duration     `mapstructure:"timeout" json:"timeout" yaml:"timeout" validate:"min=1s,max=300s"`
-	RateLimit       string            `mapstructure:"rate_limit" json:"rate_limit,omitempty" yaml:"rate_limit" validate:"omitempty"`
-	CustomHeaders   map[string]string `mapstructure:"custom_headers" json:"custom_headers,omitempty" yaml:"custom_headers"`
-	TLSVerify       bool              `mapstructure:"tls_verify" json:"tls_verify" yaml:"tls_verify"`
-	Models          []string          `mapstructure:"models" json:"models,omitempty" yaml:"models"`
-	DefaultModel    string            `mapstructure:"default_model" json:"default_model,omitempty" yaml:"default_model"`
+	Type          string            `mapstructure:"type" json:"type" yaml:"type" validate:"required,oneof=openai anthropic ollama gemini deepseek openrouter custom"`
+	APIKey        SecureString      `mapstructure:"api_key" json:"api_key,omitempty" yaml:"api_key"`
+	BaseURL       string            `mapstructure:"base_url" json:"base_url,omitempty" yaml:"base_url" validate:"omitempty,url"`
+	Organization  string            `mapstructure:"organization" json:"organization,omitempty" yaml:"organization"`
+	MaxRetries    int               `mapstructure:"max_retries" json:"max_retries" yaml:"max_retries" validate:"min=0,max=10"`
+	Timeout       time.Duration     `mapstructure:"timeout" json:"timeout" yaml:"timeout" validate:"min=1s,max=300s"`
+	RateLimit     string            `mapstructure:"rate_limit" json:"rate_limit,omitempty" yaml:"rate_limit" validate:"omitempty"`
+	CustomHeaders map[string]string `mapstructure:"custom_headers" json:"custom_headers,omitempty" yaml:"custom_headers"`
+	TLSVerify     bool              `mapstructure:"tls_verify" json:"tls_verify" yaml:"tls_verify"`
+	Models        []string          `mapstructure:"models" json:"models,omitempty" yaml:"models"`
+	DefaultModel  string            `mapstructure:"default_model" json:"default_model,omitempty" yaml:"default_model"`
 
 	// Provider-specific settings
 	Extra map[string]interface{} `mapstructure:"extra" json:"extra,omitempty" yaml:"extra"`
@@ -230,14 +236,14 @@ func (ff FeatureFlags) Merge(other FeatureFlags) FeatureFlags {
 
 // LoggingConfig configures application logging.
 type LoggingConfig struct {
-	Level       string `mapstructure:"level" json:"level" yaml:"level" validate:"oneof=trace debug info warn error fatal panic"`
-	Format      string `mapstructure:"format" json:"format" yaml:"format" validate:"oneof=text json"`
-	Output      string `mapstructure:"output" json:"output" yaml:"output" validate:"oneof=stdout stderr file"`
-	File        string `mapstructure:"file" json:"file,omitempty" yaml:"file"`
-	MaxSize     int    `mapstructure:"max_size" json:"max_size" yaml:"maxsize" validate:"min=1,max=1000"`  // MB
-	MaxBackups  int    `mapstructure:"max_backups" json:"max_backups" yaml:"maxbackups" validate:"min=0,max=100"`
-	MaxAge      int    `mapstructure:"max_age" json:"max_age" yaml:"maxage" validate:"min=1,max=365"` // Days
-	AuditEnabled bool  `mapstructure:"audit_enabled" json:"audit_enabled" yaml:"auditenabled"`
+	Level        string `mapstructure:"level" json:"level" yaml:"level" validate:"oneof=trace debug info warn error fatal panic"`
+	Format       string `mapstructure:"format" json:"format" yaml:"format" validate:"oneof=text json"`
+	Output       string `mapstructure:"output" json:"output" yaml:"output" validate:"oneof=stdout stderr file"`
+	File         string `mapstructure:"file" json:"file,omitempty" yaml:"file"`
+	MaxSize      int    `mapstructure:"max_size" json:"max_size" yaml:"maxsize" validate:"min=1,max=1000"` // MB
+	MaxBackups   int    `mapstructure:"max_backups" json:"max_backups" yaml:"maxbackups" validate:"min=0,max=100"`
+	MaxAge       int    `mapstructure:"max_age" json:"max_age" yaml:"maxage" validate:"min=1,max=365"` // Days
+	AuditEnabled bool   `mapstructure:"audit_enabled" json:"audit_enabled" yaml:"auditenabled"`
 }
 
 // ApplyDefaults applies default values to LoggingConfig.
@@ -287,12 +293,12 @@ func (lc LoggingConfig) Merge(other LoggingConfig) LoggingConfig {
 
 // SecurityConfig contains security settings.
 type SecurityConfig struct {
-	TLSMinVersion       string        `mapstructure:"tls_min_version" json:"tls_min_version" yaml:"tlsminversion" validate:"oneof=1.0 1.1 1.2 1.3"`
-	CertificatePinning  bool          `mapstructure:"certificate_pinning" json:"certificate_pinning" yaml:"certificatepinning"`
-	TokenRotation       bool          `mapstructure:"token_rotation" json:"token_rotation" yaml:"tokenrotation"`
-	EncryptConfig       bool          `mapstructure:"encrypt_config" json:"encrypt_config" yaml:"encryptconfig"`
-	SessionTimeout      time.Duration `mapstructure:"session_timeout" json:"session_timeout" yaml:"sessiontimeout" validate:"min=1m,max=24h"`
-	MaxRequestSize      int64         `mapstructure:"max_request_size" json:"max_request_size" yaml:"maxrequestsize" validate:"min=1024,max=104857600"` // 1KB to 100MB
+	TLSMinVersion      string        `mapstructure:"tls_min_version" json:"tls_min_version" yaml:"tlsminversion" validate:"oneof=1.0 1.1 1.2 1.3"`
+	CertificatePinning bool          `mapstructure:"certificate_pinning" json:"certificate_pinning" yaml:"certificatepinning"`
+	TokenRotation      bool          `mapstructure:"token_rotation" json:"token_rotation" yaml:"tokenrotation"`
+	EncryptConfig      bool          `mapstructure:"encrypt_config" json:"encrypt_config" yaml:"encryptconfig"`
+	SessionTimeout     time.Duration `mapstructure:"session_timeout" json:"session_timeout" yaml:"sessiontimeout" validate:"min=1m,max=24h"`
+	MaxRequestSize     int64         `mapstructure:"max_request_size" json:"max_request_size" yaml:"maxrequestsize" validate:"min=1024,max=104857600"` // 1KB to 100MB
 }
 
 // ApplyDefaults applies default values to SecurityConfig.
@@ -389,13 +395,13 @@ func (cc CacheConfig) Merge(other CacheConfig) CacheConfig {
 
 // PluginConfig configures the plugin system.
 type PluginConfig struct {
-	Enabled   bool     `mapstructure:"enabled" json:"enabled" yaml:"enabled"`
-	Directory string   `mapstructure:"directory" json:"directory,omitempty" yaml:"directory"`
-	AutoLoad  bool     `mapstructure:"auto_load" json:"auto_load" yaml:"autoload"`
-	Whitelist []string `mapstructure:"whitelist" json:"whitelist,omitempty" yaml:"whitelist"`
-	Blacklist []string `mapstructure:"blacklist" json:"blacklist,omitempty" yaml:"blacklist"`
+	Enabled   bool          `mapstructure:"enabled" json:"enabled" yaml:"enabled"`
+	Directory string        `mapstructure:"directory" json:"directory,omitempty" yaml:"directory"`
+	AutoLoad  bool          `mapstructure:"auto_load" json:"auto_load" yaml:"autoload"`
+	Whitelist []string      `mapstructure:"whitelist" json:"whitelist,omitempty" yaml:"whitelist"`
+	Blacklist []string      `mapstructure:"blacklist" json:"blacklist,omitempty" yaml:"blacklist"`
 	Timeout   time.Duration `mapstructure:"timeout" json:"timeout" yaml:"timeout" validate:"min=1s,max=300s"`
-	MaxMemory int64    `mapstructure:"max_memory" json:"max_memory" yaml:"maxmemory" validate:"min=1048576,max=1073741824"` // 1MB to 1GB
+	MaxMemory int64         `mapstructure:"max_memory" json:"max_memory" yaml:"maxmemory" validate:"min=1048576,max=1073741824"` // 1MB to 1GB
 }
 
 // ApplyDefaults applies default values to PluginConfig.
@@ -556,10 +562,10 @@ func (s *SecureString) UnmarshalJSON(data []byte) error {
 
 var (
 	// Configuration errors
-	ErrConfigNotFound     = errors.New("configuration file not found")
-	ErrInvalidConfig      = errors.New("invalid configuration")
-	ErrProviderNotFound   = errors.New("provider not found in configuration")
-	ErrValidationFailed   = errors.New("configuration validation failed")
+	ErrConfigNotFound   = errors.New("configuration file not found")
+	ErrInvalidConfig    = errors.New("invalid configuration")
+	ErrProviderNotFound = errors.New("provider not found in configuration")
+	ErrValidationFailed = errors.New("configuration validation failed")
 )
 
 // configPaths defines the search paths for configuration files.
@@ -601,10 +607,10 @@ func Load() (*Config, error) {
 
 // LoadOptions provides options for configuration loading.
 type LoadOptions struct {
-	ConfigFile      string
-	SkipEnvVars     bool
-	SkipValidation  bool
-	SkipDefaults    bool
+	ConfigFile     string
+	SkipEnvVars    bool
+	SkipValidation bool
+	SkipDefaults   bool
 }
 
 // LoadWithOptions loads configuration with custom options.
@@ -710,18 +716,23 @@ func (c *Config) Save(filename string) error {
 		return fmt.Errorf("failed to prepare config for saving: %w", err)
 	}
 
-	// Create directory if it doesn't exist
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
+    // Create directory if it doesn't exist
+    dir := filepath.Dir(filename)
+    if err := os.MkdirAll(dir, 0700); err != nil {
+        return fmt.Errorf("failed to create config directory: %w", err)
+    }
 
 	// Write config file
-	if err := v.WriteConfig(); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
+    if err := v.WriteConfig(); err != nil {
+        return fmt.Errorf("failed to write config file: %w", err)
+    }
 
-	return nil
+    // Restrict file permissions to owner-only (0600)
+    if err := os.Chmod(filename, 0600); err != nil {
+        return fmt.Errorf("failed to set secure permissions on config file: %w", err)
+    }
+
+    return nil
 }
 
 // Validate validates the entire configuration.
@@ -902,18 +913,42 @@ func setupEnvironmentVariables(v *viper.Viper) {
 		"providers.openai.tls_verify":   "GOLLM_PROVIDERS_OPENAI_TLS_VERIFY",
 
 		// Anthropic provider bindings
-		"providers.anthropic.type":         "GOLLM_PROVIDERS_ANTHROPIC_TYPE",
-		"providers.anthropic.api_key":      "GOLLM_PROVIDERS_ANTHROPIC_API_KEY",
-		"providers.anthropic.base_url":     "GOLLM_PROVIDERS_ANTHROPIC_BASE_URL",
-		"providers.anthropic.max_retries":  "GOLLM_PROVIDERS_ANTHROPIC_MAX_RETRIES",
-		"providers.anthropic.timeout":      "GOLLM_PROVIDERS_ANTHROPIC_TIMEOUT",
-		"providers.anthropic.tls_verify":   "GOLLM_PROVIDERS_ANTHROPIC_TLS_VERIFY",
+		"providers.anthropic.type":        "GOLLM_PROVIDERS_ANTHROPIC_TYPE",
+		"providers.anthropic.api_key":     "GOLLM_PROVIDERS_ANTHROPIC_API_KEY",
+		"providers.anthropic.base_url":    "GOLLM_PROVIDERS_ANTHROPIC_BASE_URL",
+		"providers.anthropic.max_retries": "GOLLM_PROVIDERS_ANTHROPIC_MAX_RETRIES",
+		"providers.anthropic.timeout":     "GOLLM_PROVIDERS_ANTHROPIC_TIMEOUT",
+		"providers.anthropic.tls_verify":  "GOLLM_PROVIDERS_ANTHROPIC_TLS_VERIFY",
+
+		// OpenRouter provider bindings
+		"providers.openrouter.type":        "GOLLM_PROVIDERS_OPENROUTER_TYPE",
+		"providers.openrouter.api_key":     "GOLLM_PROVIDERS_OPENROUTER_API_KEY",
+		"providers.openrouter.base_url":    "GOLLM_PROVIDERS_OPENROUTER_BASE_URL",
+		"providers.openrouter.max_retries": "GOLLM_PROVIDERS_OPENROUTER_MAX_RETRIES",
+		"providers.openrouter.timeout":     "GOLLM_PROVIDERS_OPENROUTER_TIMEOUT",
+		"providers.openrouter.tls_verify":  "GOLLM_PROVIDERS_OPENROUTER_TLS_VERIFY",
+
+		// Gemini provider bindings
+		"providers.gemini.type":        "GOLLM_PROVIDERS_GEMINI_TYPE",
+		"providers.gemini.api_key":     "GOLLM_PROVIDERS_GEMINI_API_KEY",
+		"providers.gemini.base_url":    "GOLLM_PROVIDERS_GEMINI_BASE_URL",
+		"providers.gemini.max_retries": "GOLLM_PROVIDERS_GEMINI_MAX_RETRIES",
+		"providers.gemini.timeout":     "GOLLM_PROVIDERS_GEMINI_TIMEOUT",
+		"providers.gemini.tls_verify":  "GOLLM_PROVIDERS_GEMINI_TLS_VERIFY",
+
+		// DeepSeek provider bindings
+		"providers.deepseek.type":        "GOLLM_PROVIDERS_DEEPSEEK_TYPE",
+		"providers.deepseek.api_key":     "GOLLM_PROVIDERS_DEEPSEEK_API_KEY",
+		"providers.deepseek.base_url":    "GOLLM_PROVIDERS_DEEPSEEK_BASE_URL",
+		"providers.deepseek.max_retries": "GOLLM_PROVIDERS_DEEPSEEK_MAX_RETRIES",
+		"providers.deepseek.timeout":     "GOLLM_PROVIDERS_DEEPSEEK_TIMEOUT",
+		"providers.deepseek.tls_verify":  "GOLLM_PROVIDERS_DEEPSEEK_TLS_VERIFY",
 
 		// Ollama provider bindings
-		"providers.ollama.type":         "GOLLM_PROVIDERS_OLLAMA_TYPE",
-		"providers.ollama.base_url":     "GOLLM_PROVIDERS_OLLAMA_BASE_URL",
-		"providers.ollama.max_retries":  "GOLLM_PROVIDERS_OLLAMA_MAX_RETRIES",
-		"providers.ollama.timeout":      "GOLLM_PROVIDERS_OLLAMA_TIMEOUT",
+		"providers.ollama.type":        "GOLLM_PROVIDERS_OLLAMA_TYPE",
+		"providers.ollama.base_url":    "GOLLM_PROVIDERS_OLLAMA_BASE_URL",
+		"providers.ollama.max_retries": "GOLLM_PROVIDERS_OLLAMA_MAX_RETRIES",
+		"providers.ollama.timeout":     "GOLLM_PROVIDERS_OLLAMA_TIMEOUT",
 
 		// Settings bindings
 		"settings.max_tokens":        "GOLLM_SETTINGS_MAX_TOKENS",
@@ -982,13 +1017,14 @@ func secureStringDecodeHook() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		// Convert string to SecureString
+		// Convert string to SecureString with environment expansion
 		str, ok := data.(string)
 		if !ok {
 			return data, nil
 		}
-
-		return NewSecureString(str), nil
+		// Expand ${VAR} placeholders using the current process environment
+		expanded := os.ExpandEnv(str)
+		return NewSecureString(expanded), nil
 	}
 }
 
@@ -1169,8 +1205,6 @@ func postProcessConfig(config *Config) error {
 	return nil
 }
 
-
-
 // GetDefaultProvider returns the default provider configuration.
 func (c *Config) GetDefaultProvider() (string, ProviderConfig, error) {
 	if c.DefaultProvider == "" {
@@ -1203,8 +1237,6 @@ func (c *Config) HasProvider(name string) bool {
 	_, exists := c.Providers[name]
 	return exists
 }
-
-
 
 // ToProviderConfig converts to a core.ProviderConfig.
 func (p *ProviderConfig) ToProviderConfig() core.ProviderConfig {

@@ -289,6 +289,7 @@ func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]*Provider
 
 	results := make(map[string]*ProviderHealth)
 	var wg sync.WaitGroup
+	var resMu sync.Mutex
 
 	for name, provider := range providers {
 		wg.Add(1)
@@ -297,11 +298,15 @@ func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]*Provider
 
 			health := r.checkProviderHealth(ctx, name, provider)
 
+			// Update shared health map under lock
 			r.mu.Lock()
 			r.health[name] = health
 			r.mu.Unlock()
 
+			// Collect results under local mutex to avoid concurrent map writes
+			resMu.Lock()
 			results[name] = health
+			resMu.Unlock()
 		}(name, provider)
 	}
 
@@ -437,8 +442,8 @@ type ProviderMetrics struct {
 	MaxResponseTime   time.Duration `json:"max_response_time"`
 
 	// Token usage
-	TotalTokensUsed      int64 `json:"total_tokens_used"`
-	TotalPromptTokens    int64 `json:"total_prompt_tokens"`
+	TotalTokensUsed       int64 `json:"total_tokens_used"`
+	TotalPromptTokens     int64 `json:"total_prompt_tokens"`
 	TotalCompletionTokens int64 `json:"total_completion_tokens"`
 
 	// Cost tracking

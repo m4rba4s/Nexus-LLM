@@ -1,0 +1,10 @@
+# test log
+getenv NO_COLOR
+getenv FORCE_COLOR
+getenv NO_COLOR
+getenv FORCE_COLOR
+getenv TMPDIR
+stat /tmp/TestConfigCommand2805156237/001/test-config.yaml
+stat /tmp/TestConfigCommand2805156237/001
+open /tmp/TestConfigCommand2805156237/001/test-config.yaml
+open /tmp

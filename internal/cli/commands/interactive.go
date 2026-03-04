@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/yourusername/gollm/internal/config"
 	"github.com/yourusername/gollm/internal/core"
 
 	// Import providers to trigger their init() registration
@@ -50,6 +50,9 @@ type InteractiveSession struct {
 	totalTokens  int
 	requestCount int
 	startTime    time.Time
+	out          io.Writer
+	errOut       io.Writer
+	in           io.Reader
 }
 
 // NewInteractiveCommand creates the interactive chat command.
@@ -137,8 +140,8 @@ func addInteractiveFlags(cmd *cobra.Command, flags *InteractiveFlags) {
 		"system message to set context")
 
 	// Session behavior flags
-	f.BoolVar(&flags.Stream, "stream", true,
-		"stream response tokens (default)")
+	f.BoolVar(&flags.Stream, "stream", false,
+		"stream response tokens")
 	f.BoolVar(&flags.NoStream, "no-stream", false,
 		"disable streaming and wait for complete response")
 	f.BoolVar(&flags.SaveHistory, "save-history", false,
@@ -162,8 +165,8 @@ func addInteractiveFlags(cmd *cobra.Command, flags *InteractiveFlags) {
 
 // runInteractiveCommand executes the interactive chat command.
 func runInteractiveCommand(cmd *cobra.Command, flags *InteractiveFlags) error {
-	// Load configuration
-	cfg, err := config.Load()
+	// Load configuration (or injected during tests)
+	cfg, err := getInjectedOrLoad()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -190,6 +193,9 @@ func runInteractiveCommand(cmd *cobra.Command, flags *InteractiveFlags) error {
 		flags:        flags,
 		conversation: []core.Message{},
 		startTime:    time.Now(),
+		out:          cmd.OutOrStdout(),
+		errOut:       cmd.ErrOrStderr(),
+		in:           cmd.InOrStdin(),
 	}
 
 	// Add system message if provided
@@ -203,6 +209,7 @@ func runInteractiveCommand(cmd *cobra.Command, flags *InteractiveFlags) error {
 	// Show welcome message
 	if !flags.Quiet {
 		showWelcomeMessage(providerName, model, flags)
+		fmt.Fprintln(cmd.OutOrStdout(), "Interactive mode")
 	}
 
 	// Start interactive loop
@@ -211,12 +218,21 @@ func runInteractiveCommand(cmd *cobra.Command, flags *InteractiveFlags) error {
 
 // run starts the main interactive loop.
 func (s *InteractiveSession) run() error {
-	reader := bufio.NewReader(os.Stdin)
+	if s.in == nil {
+		s.in = os.Stdin
+	}
+	if s.out == nil {
+		s.out = os.Stdout
+	}
+	if s.errOut == nil {
+		s.errOut = os.Stderr
+	}
+	reader := bufio.NewReader(s.in)
 
 	for {
 		// Show prompt
 		if !s.flags.Quiet {
-			fmt.Print("\n> ")
+			fmt.Fprint(s.out, "\n> ")
 		}
 
 		// Read user input
@@ -232,7 +248,7 @@ func (s *InteractiveSession) run() error {
 		if err != nil {
 			if err == io.EOF {
 				if !s.flags.Quiet {
-					fmt.Println("\nGoodbye!")
+					fmt.Fprintln(s.out, "\nGoodbye!")
 				}
 				return nil
 			}
@@ -247,13 +263,17 @@ func (s *InteractiveSession) run() error {
 		// Handle commands
 		if strings.HasPrefix(input, "/") {
 			if handled := s.handleCommand(input); handled {
+				lower := strings.ToLower(strings.TrimSpace(input))
+				if lower == "/quit" || lower == "/exit" || lower == "/q" {
+					return nil
+				}
 				continue
 			}
 		}
 
 		// Process chat message
 		if err := s.processMessage(input); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			fmt.Fprintf(s.errOut, "Error: %v\n", err)
 			continue
 		}
 	}
@@ -262,7 +282,7 @@ func (s *InteractiveSession) run() error {
 // readMultilineInput reads multiline input ending with double newline or EOF.
 func (s *InteractiveSession) readMultilineInput(reader *bufio.Reader) (string, error) {
 	if !s.flags.Quiet {
-		fmt.Println("(Type your message. Press Enter twice to send, Ctrl+D to finish)")
+		fmt.Fprintln(s.out, "(Type your message. Press Enter twice to send, Ctrl+D to finish)")
 	}
 
 	var lines []string
@@ -307,9 +327,8 @@ func (s *InteractiveSession) handleCommand(input string) bool {
 	case "/quit", "/exit", "/q":
 		if !s.flags.Quiet {
 			s.showSessionStats()
-			fmt.Println("Goodbye!")
+			fmt.Fprintln(s.out, "Goodbye!")
 		}
-		os.Exit(0)
 		return true
 
 	case "/help", "/h":
@@ -319,7 +338,7 @@ func (s *InteractiveSession) handleCommand(input string) bool {
 	case "/clear", "/c":
 		s.clearHistory()
 		if !s.flags.Quiet {
-			fmt.Println("Conversation history cleared.")
+			fmt.Fprintln(s.out, "Conversation history cleared.")
 		}
 		return true
 
@@ -329,13 +348,13 @@ func (s *InteractiveSession) handleCommand(input string) bool {
 
 	case "/system":
 		if len(parts) < 2 {
-			fmt.Println("Usage: /system <message>")
+			fmt.Fprintln(s.out, "Usage: /system <message>")
 			return true
 		}
 		systemMsg := strings.Join(parts[1:], " ")
 		s.setSystemMessage(systemMsg)
 		if !s.flags.Quiet {
-			fmt.Printf("System message set: %s\n", systemMsg)
+			fmt.Fprintf(s.out, "System message set: %s\n", systemMsg)
 		}
 		return true
 
@@ -349,9 +368,9 @@ func (s *InteractiveSession) handleCommand(input string) bool {
 			filename = parts[1]
 		}
 		if err := s.saveHistory(filename); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to save history: %v\n", err)
+			fmt.Fprintf(s.errOut, "Failed to save history: %v\n", err)
 		} else {
-			fmt.Printf("History saved to %s\n", filename)
+			fmt.Fprintf(s.out, "History saved to %s\n", filename)
 		}
 		return true
 
@@ -512,15 +531,53 @@ func (s *InteractiveSession) handleNonStreamingResponse(ctx context.Context, req
 	}
 
 	if !s.flags.Quiet {
-		fmt.Printf("\n%s\n", responseContent)
+		fmt.Fprintf(s.out, "\n%s\n", responseContent)
 	}
 
 	return responseContent, &response.Usage
 }
 
+// displayInteractiveLogo displays the GOLLM ASCII logo for interactive mode
+func displayInteractiveLogo() {
+	miniLogo := `GOLLM ░▒▓█▓▒░`
+
+	// Apply colors if supported
+	if shouldUseColorsInInteractive() {
+		coloredLogo := color.New(color.FgHiCyan, color.Bold).Sprint(miniLogo)
+		fmt.Println("              " + coloredLogo)
+
+		// Add tagline
+		tagline := "🤖 Interactive Chat Mode • Type /help for commands • /quit to exit"
+		fmt.Println(color.New(color.FgHiWhite).Sprint("         " + tagline))
+	} else {
+		fmt.Println("              " + miniLogo)
+		fmt.Println("         🤖 Interactive Chat Mode • Type /help for commands • /quit to exit")
+	}
+}
+
+// shouldUseColorsInInteractive determines if colors should be used in interactive mode
+func shouldUseColorsInInteractive() bool {
+	// Check for NO_COLOR environment variable
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+
+	// Check for FORCE_COLOR environment variable
+	if os.Getenv("FORCE_COLOR") != "" {
+		return true
+	}
+
+	// Use fatih/color's built-in detection
+	return !color.NoColor
+}
+
 // showWelcomeMessage displays the session welcome message.
 func showWelcomeMessage(provider, model string, flags *InteractiveFlags) {
-	fmt.Printf("🤖 GOLLM Interactive Chat\n")
+	// Display GOLLM ASCII logo
+	displayInteractiveLogo()
+	fmt.Println()
+
+	fmt.Printf("🤖 Interactive Chat Mode\n")
 	fmt.Printf("═══════════════════════════\n")
 	fmt.Printf("Provider: %s\n", provider)
 	fmt.Printf("Model: %s\n", model)
