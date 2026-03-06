@@ -3,7 +3,7 @@
 [![CI](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml/badge.svg)](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/yourusername/gollm/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/gollm)
 
-GOLLM is a fast, reliable command‑line interface for Large Language Models with multiple providers, streaming, rich TUI, and strong defaults for security and portability.
+Nexus-LLM is a fast, reliable command‑line interface for Large Language Models with multiple providers, streaming, rich TUI, and strong defaults for security and portability.
 
 - Docs: `docs/` (API, SECURITY, PERFORMANCE, ADRs)
 - Source: `cmd/gollm` (entrypoint), `internal/**` (packages)
