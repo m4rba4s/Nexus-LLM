@@ -39,11 +39,11 @@ import (
 
     "github.com/spf13/cobra"
 
-    "github.com/yourusername/gollm/internal/cli/commands"
-    "github.com/yourusername/gollm/internal/config"
-    "github.com/yourusername/gollm/internal/core"
-    "github.com/yourusername/gollm/internal/version"
-    branding "github.com/yourusername/gollm/internal/branding"
+    "github.com/m4rba4s/Nexus-LLM/internal/cli/commands"
+    "github.com/m4rba4s/Nexus-LLM/internal/config"
+    "github.com/m4rba4s/Nexus-LLM/internal/core"
+    "github.com/m4rba4s/Nexus-LLM/internal/version"
+    branding "github.com/m4rba4s/Nexus-LLM/internal/branding"
 )
 
 // BuildInfo contains information about the build.

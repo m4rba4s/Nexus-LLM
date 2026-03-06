@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgxvector "github.com/pgvector/pgvector-go/pgx"
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 // Storage handles PostgreSQL connections and queries for Persistent Memory

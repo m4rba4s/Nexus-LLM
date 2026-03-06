@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yourusername/gollm/internal/autonomy/reversing"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy/reversing"
 )
 
 // MockProvider generates a fake eBPF response imitating LLM reversing

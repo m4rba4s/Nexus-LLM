@@ -40,7 +40,7 @@ func TestBrowserEngine_JavascriptEvaluation(t *testing.T) {
 		// Infinite loop to test sandboxing limit (5 seconds)
 		_, err := engine.EvaluateJS(ctx, "while(true) {}")
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "execution timeout")
+		assert.Contains(t, err.Error(), "execution timed out")
 	})
 }
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yourusername/gollm/internal/offensive"
+	"github.com/m4rba4s/Nexus-LLM/internal/offensive"
 )
 
 // MockProvider generates a fake Python payload simulating RCE against port 80.

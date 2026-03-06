@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/yourusername/gollm/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
 )
 
 // MockForager returns a fake CVE page about a malicious python exploit.

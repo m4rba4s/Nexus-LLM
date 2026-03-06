@@ -1,4 +1,4 @@
-module github.com/yourusername/gollm
+module github.com/m4rba4s/Nexus-LLM
 
 go 1.24.0
 

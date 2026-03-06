@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // Operator represents a coder operation type

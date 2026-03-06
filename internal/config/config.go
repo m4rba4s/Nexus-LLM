@@ -37,7 +37,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // Config represents the complete application configuration.

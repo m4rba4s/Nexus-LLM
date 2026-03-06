@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yourusername/gollm/internal/sandbox"
+	"github.com/m4rba4s/Nexus-LLM/internal/sandbox"
 )
 
 // BrowserForager implements WebForager by delegating to the Phase 15 BrowserEngine.

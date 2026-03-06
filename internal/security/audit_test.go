@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yourusername/gollm/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
 )
 
 // TestSecurity_CredentialHandling tests secure credential management

@@ -12,7 +12,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/yourusername/gollm/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
 )
 
 // SimpleChat represents a basic terminal chat interface

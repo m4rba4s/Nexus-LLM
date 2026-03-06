@@ -3,7 +3,7 @@ package p2p_test
 import (
 	"testing"
 
-	"github.com/yourusername/gollm/internal/p2p"
+	"github.com/m4rba4s/Nexus-LLM/internal/p2p"
 )
 
 func TestEd25519Cryptography(t *testing.T) {

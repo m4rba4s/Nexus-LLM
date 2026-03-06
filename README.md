@@ -1,6 +1,6 @@
 # GOLLM — High‑Performance LLM CLI
 
-[![CI](https://github.com/yourusername/gollm/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/gollm/actions/workflows/ci.yml)
+[![CI](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml/badge.svg)](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/yourusername/gollm/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/gollm)
 
 GOLLM is a fast, reliable command‑line interface for Large Language Models with multiple providers, streaming, rich TUI, and strong defaults for security and portability.
@@ -53,35 +53,15 @@ See `docs/API.md` and `config.yaml.example` for details.
 
 ## License
 
-Apache-2.0 (or as defined by the repository)
+Apache-2.0 — see [LICENSE](LICENSE).
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Acknowledgments
 
-## 🙏 Acknowledgments
-
-- [Cobra](https://github.com/spf13/cobra) for CLI framework
-- [Viper](https://github.com/spf13/viper) for configuration management
-- [Go](https://golang.org/) team for the amazing language
-- All contributors and users of this project
-
-## 📞 Support
-
-- **Documentation**: [docs.gollm.dev](https://docs.gollm.dev)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/gollm/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/gollm/discussions)
-- **Discord**: [Join our Discord](https://discord.gg/gollm)
+- [Cobra](https://github.com/spf13/cobra) — CLI framework
+- [Viper](https://github.com/spf13/viper) — configuration management
+- [Go](https://golang.org/) team
 
 ---
 
-**Made with ❤️ and ⚡ by the GOLLM team**
+**Made with ❤️ by the GOLLM / Nexus-LLM team**
 
-*GOLLM - Where performance meets simplicity in LLM interactions.*
-=======
->>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)
-=======
->>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)
-=======
->>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)

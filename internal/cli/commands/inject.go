@@ -1,6 +1,6 @@
 package commands
 
-import "github.com/yourusername/gollm/internal/config"
+import "github.com/m4rba4s/Nexus-LLM/internal/config"
 
 // injectedConfig allows tests to inject a configuration without touching disk.
 var injectedConfig *config.Config

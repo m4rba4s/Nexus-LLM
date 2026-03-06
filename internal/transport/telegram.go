@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/gollm/internal/executor"
-	"github.com/yourusername/gollm/internal/kinematics"
-	"github.com/yourusername/gollm/internal/prompt"
-	"github.com/yourusername/gollm/internal/router"
-	"github.com/yourusername/gollm/internal/storage"
+	"github.com/m4rba4s/Nexus-LLM/internal/executor"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/prompt"
+	"github.com/m4rba4s/Nexus-LLM/internal/router"
+	"github.com/m4rba4s/Nexus-LLM/internal/storage"
 
 	tele "gopkg.in/telebot.v3"
 )

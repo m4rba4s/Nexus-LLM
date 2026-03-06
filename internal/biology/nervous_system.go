@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 // PainThreshold defines how much system trauma a node can handle before triggering Apoptosis.

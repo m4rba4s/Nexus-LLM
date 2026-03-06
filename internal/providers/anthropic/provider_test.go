@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 func TestNew(t *testing.T) {

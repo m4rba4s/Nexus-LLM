@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/gollm/internal/forensics"
+	"github.com/m4rba4s/Nexus-LLM/internal/forensics"
 )
 
 // MockYARASynthesizer generates a fake JSON response imitating Claude Opus

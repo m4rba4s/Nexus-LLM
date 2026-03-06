@@ -35,11 +35,11 @@ import (
 	"time"
 
 	"encoding/json"
-	"github.com/yourusername/gollm/internal/config"
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/providers/mock"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/providers/mock"
 
-	"github.com/yourusername/gollm/internal/transport"
+	"github.com/m4rba4s/Nexus-LLM/internal/transport"
 )
 
 // Benchmark Configuration Loading

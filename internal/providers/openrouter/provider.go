@@ -9,8 +9,8 @@ import (
 
 	"time"
 
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/transport"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/transport"
 )
 
 const (

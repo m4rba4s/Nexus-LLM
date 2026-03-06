@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/pgvector/pgvector-go"
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 // SemanticMemory represents a chunk of stored context with its embedding

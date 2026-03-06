@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/yourusername/gollm/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
 )
 
 // MinimalModel represents the minimal TUI state

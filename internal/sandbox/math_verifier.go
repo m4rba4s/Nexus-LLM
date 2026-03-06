@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yourusername/gollm/internal/sandbox/ebpf"
+	"github.com/m4rba4s/Nexus-LLM/internal/sandbox/ebpf"
 )
 
 var (

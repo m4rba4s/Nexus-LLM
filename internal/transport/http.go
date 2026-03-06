@@ -43,7 +43,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // HTTPClient provides a high-performance HTTP client with advanced features.

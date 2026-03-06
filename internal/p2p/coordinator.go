@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/yourusername/gollm/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
 )
 
 // Coordinator connects the Gossip network to the Defensive Ring-0 compiler.

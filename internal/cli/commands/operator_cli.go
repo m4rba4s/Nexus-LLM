@@ -9,8 +9,8 @@ import (
 
     "github.com/spf13/cobra"
 
-    "github.com/yourusername/gollm/internal/modes/operator"
-    branding "github.com/yourusername/gollm/internal/branding"
+    "github.com/m4rba4s/Nexus-LLM/internal/modes/operator"
+    branding "github.com/m4rba4s/Nexus-LLM/internal/branding"
 )
 
 type OperatorFlags struct {

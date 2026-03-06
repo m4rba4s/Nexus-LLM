@@ -1,9 +1,0 @@
-./global_registry.go
-./integration.go
-./provider.go
-./types.go
-./types_docs.go
-./integration_test.go
-./provider_test.go
-./types_enhanced_test.go
-./types_test.go

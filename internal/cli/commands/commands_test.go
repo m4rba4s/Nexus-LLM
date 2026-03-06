@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yourusername/gollm/internal/config"
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/providers/mock"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/providers/mock"
 )
 
 // TestCommand represents a CLI command for testing.

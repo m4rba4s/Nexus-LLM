@@ -13,12 +13,12 @@ import (
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 
 	// Import providers to trigger their init() registration
-	_ "github.com/yourusername/gollm/internal/providers/anthropic"
-	_ "github.com/yourusername/gollm/internal/providers/mock"
-	_ "github.com/yourusername/gollm/internal/providers/openai"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/anthropic"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/mock"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/openai"
 )
 
 // InteractiveFlags contains flags specific to the interactive command.

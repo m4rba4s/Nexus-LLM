@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // ExecutorSynthesizer uses an LLM Provider (Opus/Gemini) to convert raw threat text into eBPF defenses.

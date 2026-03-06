@@ -1,11 +1,14 @@
 # Binaries
 bin/
+gollm
 *.exe
 *.out
 
 # Go
 vendor/
 *.test
+.gocache/
+.modcache/
 
 # Environment
 .env
@@ -27,19 +30,23 @@ Thumbs.db
 *.o
 !internal/sandbox/ebpf/*.o
 /tmp/
+*.tar.gz
 
 # Logs
 *.log
 
+# Coverage
+coverage/
+coverage.out
+
 # Keys (gitleaks enforced)
 *.pem
 *.key
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-.modcache/
+# Node (not used)
 node_modules/
-=======
->>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)
-=======
->>>>>>> debb6072 (Phase 1-26: Nexus-LLM Core Engine)
+package.json
+package-lock.json
+
+# LLM cache
+.llm/

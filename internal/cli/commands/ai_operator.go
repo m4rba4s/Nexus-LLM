@@ -278,7 +278,7 @@ You are the computer operator - act with confidence and execute commands as need
 
 	req.Header.Set("Authorization", "Bearer "+operatorSession.APIKey)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("HTTP-Referer", "https://github.com/yourusername/gollm")
+	req.Header.Set("HTTP-Referer", "https://github.com/m4rba4s/Nexus-LLM")
 	req.Header.Set("X-Title", "AI System Operator")
 
 	client := &http.Client{Timeout: 60 * time.Second}

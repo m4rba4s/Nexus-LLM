@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/yourusername/gollm/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
 )
 
 // GossipNode extends SwarmNode with C2 capabilities.

@@ -6,14 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/yourusername/gollm/internal/biology"
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/kinematics"
-	"github.com/yourusername/gollm/internal/providers/anthropic"
-	"github.com/yourusername/gollm/internal/providers/gemini"
-	"github.com/yourusername/gollm/internal/router"
-	"github.com/yourusername/gollm/internal/sandbox"
-	"github.com/yourusername/gollm/internal/storage"
+	"github.com/m4rba4s/Nexus-LLM/internal/biology"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/providers/anthropic"
+	"github.com/m4rba4s/Nexus-LLM/internal/providers/gemini"
+	"github.com/m4rba4s/Nexus-LLM/internal/router"
+	"github.com/m4rba4s/Nexus-LLM/internal/sandbox"
+	"github.com/m4rba4s/Nexus-LLM/internal/storage"
 )
 
 // Executor runs the assigned prompt on the correct model/sandbox based on the routing decision

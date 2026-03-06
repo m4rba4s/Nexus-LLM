@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/rivo/tview"
-	"github.com/yourusername/gollm/internal/autonomy"
-	"github.com/yourusername/gollm/internal/p2p"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/p2p"
 )
 
 // RunDashboard boots a passive Swarm node and attaches the TUI to its event streams.

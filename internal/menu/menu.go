@@ -9,18 +9,18 @@ import (
     "strings"
     "time"
 
-    "github.com/yourusername/gollm/internal/config"
-    "github.com/yourusername/gollm/internal/core"
-    "github.com/yourusername/gollm/internal/modes/coder"
-    "github.com/yourusername/gollm/internal/modes/operator"
-    branding "github.com/yourusername/gollm/internal/branding"
+    "github.com/m4rba4s/Nexus-LLM/internal/config"
+    "github.com/m4rba4s/Nexus-LLM/internal/core"
+    "github.com/m4rba4s/Nexus-LLM/internal/modes/coder"
+    "github.com/m4rba4s/Nexus-LLM/internal/modes/operator"
+    branding "github.com/m4rba4s/Nexus-LLM/internal/branding"
 
 	// Import providers to register them
-	_ "github.com/yourusername/gollm/internal/providers/anthropic"
-	_ "github.com/yourusername/gollm/internal/providers/deepseek"
-	_ "github.com/yourusername/gollm/internal/providers/gemini"
-	_ "github.com/yourusername/gollm/internal/providers/openai"
-	_ "github.com/yourusername/gollm/internal/providers/openrouter"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/anthropic"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/deepseek"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/gemini"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/openai"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/openrouter"
 )
 
 // Settings holds current menu settings

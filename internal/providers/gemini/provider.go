@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 const (

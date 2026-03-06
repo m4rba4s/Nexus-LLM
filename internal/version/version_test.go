@@ -390,25 +390,23 @@ func TestBuildInfo_UserAgent(t *testing.T) {
 func TestBuildInfo_EdgeCases(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil build info", func(t *testing.T) {
+	t.Run("zero value build info", func(t *testing.T) {
 		t.Parallel()
-		var info *BuildInfo
+		info := &BuildInfo{}
 
-		// These should not panic even with nil receiver
+		// These should not panic with zero-value receiver
 		defer func() {
 			if r := recover(); r != nil {
-				t.Errorf("Method panicked with nil receiver: %v", r)
+				t.Errorf("Method panicked with zero-value receiver: %v", r)
 			}
 		}()
 
-		if info != nil {
-			info.String()
-			info.Short()
-			info.Detailed()
-			info.IsRelease()
-			info.IsDevelopment()
-			info.UserAgent()
-		}
+		_ = info.String()
+		_ = info.Short()
+		_ = info.Detailed()
+		_ = info.IsRelease()
+		_ = info.IsDevelopment()
+		_ = info.UserAgent()
 	})
 
 	t.Run("very long commit hash", func(t *testing.T) {

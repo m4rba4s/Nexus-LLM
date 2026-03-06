@@ -11,9 +11,9 @@ import (
     tea "github.com/charmbracelet/bubbletea"
     "github.com/spf13/cobra"
 
-    "github.com/yourusername/gollm/internal/config"
-    "github.com/yourusername/gollm/internal/mcp"
-    "github.com/yourusername/gollm/internal/tui"
+    "github.com/m4rba4s/Nexus-LLM/internal/config"
+    "github.com/m4rba4s/Nexus-LLM/internal/mcp"
+    "github.com/m4rba4s/Nexus-LLM/internal/tui"
 )
 
 // NewAdvancedCommand creates the advanced TUI command

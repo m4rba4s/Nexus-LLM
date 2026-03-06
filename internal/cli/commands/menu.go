@@ -5,7 +5,7 @@ import (
     "os"
 
     "github.com/spf13/cobra"
-    "github.com/yourusername/gollm/internal/menu"
+    "github.com/m4rba4s/Nexus-LLM/internal/menu"
 )
 
 type MenuFlags struct {

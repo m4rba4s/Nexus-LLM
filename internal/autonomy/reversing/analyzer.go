@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yourusername/gollm/internal/autonomy"
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // BinaryAnalyzer coordinates parsing ELF/PE files via R2 and passing them to the LLM

@@ -10,18 +10,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	branding "github.com/yourusername/gollm/internal/branding"
-	"github.com/yourusername/gollm/internal/config"
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/modes/coder"
+	branding "github.com/m4rba4s/Nexus-LLM/internal/branding"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/modes/coder"
 
 	// Import providers to register their factories via init()
-	_ "github.com/yourusername/gollm/internal/providers/anthropic"
-	_ "github.com/yourusername/gollm/internal/providers/deepseek"
-	_ "github.com/yourusername/gollm/internal/providers/gemini"
-	_ "github.com/yourusername/gollm/internal/providers/mock"
-	_ "github.com/yourusername/gollm/internal/providers/openai"
-	_ "github.com/yourusername/gollm/internal/providers/openrouter"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/anthropic"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/deepseek"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/gemini"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/mock"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/openai"
+	_ "github.com/m4rba4s/Nexus-LLM/internal/providers/openrouter"
 )
 
 type CoderFlags struct {

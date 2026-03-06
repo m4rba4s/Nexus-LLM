@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/gollm/internal/core"
-	"github.com/yourusername/gollm/internal/display"
-	"github.com/yourusername/gollm/internal/providers/deepseek"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/display"
+	"github.com/m4rba4s/Nexus-LLM/internal/providers/deepseek"
 )
 
 func main() {

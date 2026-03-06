@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/yourusername/gollm/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
 )
 
 // ConfigFlags contains flags specific to config commands.

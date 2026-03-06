@@ -3,7 +3,7 @@ package prompt
 import (
 	"strings"
 
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 // ContextBuilder constructs the final System Prompt sent to the LLM.

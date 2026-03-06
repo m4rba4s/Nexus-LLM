@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourusername/gollm/internal/sandbox"
+	"github.com/m4rba4s/Nexus-LLM/internal/sandbox"
 )
 
 // DeliveryMechanism is responsible for executing the generated exploit payloads safely.

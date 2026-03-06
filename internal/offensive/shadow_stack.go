@@ -53,12 +53,12 @@ func WithShadowStack(config ShadowStackConfig, fn func()) error {
 	framePtr := top
 	for i := len(config.Frames) - 1; i >= 0; i-- {
 		framePtr -= 8
-		*(*uintptr)(unsafe.Pointer(framePtr)) = config.Frames[i].ReturnAddr
+		*(*uintptr)(unsafe.Pointer(framePtr)) = config.Frames[i].ReturnAddr //nolint:govet // intentional: writing to mmap'd shadow stack
 		framePtr -= 8
 		if i > 0 {
-			*(*uintptr)(unsafe.Pointer(framePtr)) = framePtr + 16
+			*(*uintptr)(unsafe.Pointer(framePtr)) = framePtr + 16 //nolint:govet // intentional: fake RBP chain
 		} else {
-			*(*uintptr)(unsafe.Pointer(framePtr)) = 0
+			*(*uintptr)(unsafe.Pointer(framePtr)) = 0 //nolint:govet // intentional: terminal frame
 		}
 	}
 

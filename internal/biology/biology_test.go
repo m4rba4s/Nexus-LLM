@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/gollm/internal/autonomy"
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 func TestGeneticEncoder_EncodeDecode(t *testing.T) {

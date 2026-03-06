@@ -16,8 +16,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/yourusername/gollm/internal/config"
-	"github.com/yourusername/gollm/internal/core"
+	"github.com/m4rba4s/Nexus-LLM/internal/config"
+	"github.com/m4rba4s/Nexus-LLM/internal/core"
 )
 
 // OperationMode represents the two main modes of operation

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/gollm/internal/kinematics"
+	"github.com/m4rba4s/Nexus-LLM/internal/kinematics"
 )
 
 type Endpoint string

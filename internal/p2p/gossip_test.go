@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/gollm/internal/autonomy"
-	"github.com/yourusername/gollm/internal/p2p"
+	"github.com/m4rba4s/Nexus-LLM/internal/autonomy"
+	"github.com/m4rba4s/Nexus-LLM/internal/p2p"
 )
 
 func TestP2PGossipReplication(t *testing.T) {
