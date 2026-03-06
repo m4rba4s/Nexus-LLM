@@ -1,4 +1,4 @@
-# GOLLM — High‑Performance LLM CLI
+# Nexus-LLM — High‑Performance LLM CLI
 
 [![CI](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml/badge.svg)](https://github.com/m4rba4s/Nexus-LLM/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/yourusername/gollm/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/gollm)
